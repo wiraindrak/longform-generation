@@ -16,8 +16,8 @@ html {
 }
 
 body {
-  background-color: #080808;
-  color: #e8e8e8;
+  background-color: #f9fafb;
+  color: #111827;
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -29,14 +29,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #101010;
+  background: #f3f4f6;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #d1d5db;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #9ca3af;
 }
 
 /* Shimmer animation for loading */
@@ -50,7 +50,7 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
   background-size: 800px 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -59,10 +59,10 @@ body {
 @keyframes glow-pulse {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.04);
   }
   50% {
-    box-shadow: 0 0 40px rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
 }
 
