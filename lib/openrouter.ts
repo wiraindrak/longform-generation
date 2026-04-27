@@ -49,45 +49,56 @@ export async function generateStoryWithKimi(
 
 export async function generateImageWithGPT(
   prompt: string,
-  size: string
+  size: string,
+  ratio: string
 ): Promise<string> {
-  const res = await fetch(`${OPENROUTER_BASE}/images/generations`, {
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
       model: "openai/gpt-5.4-image-2",
-      prompt,
-      n: 1,
-      size,
-      response_format: "b64_json",
-      quality: "hd",
+      messages: [{ role: "user", content: prompt }],
+      modalities: ["image", "text"],
+      image_config: {
+        aspect_ratio: ratio,
+        image_size: "2K",
+        quality: "high",
+      },
     }),
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Image generation failed (${res.status}): ${errText}`);
+    const preview = errText.startsWith("<!") ? "(HTML page returned — wrong endpoint or model not accessible)" : errText.slice(0, 300);
+    throw new Error(`Image generation failed (${res.status}): ${preview}`);
   }
 
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") ?? "";
+  const raw = await res.text();
+  if (!contentType.includes("json")) {
+    throw new Error(`Image generation returned non-JSON (${contentType}): ${raw.slice(0, 200)}`);
+  }
+  const data = JSON.parse(raw);
 
-  if (!data.data?.[0]) {
-    throw new Error("No image data returned from image model");
+  const message = data.choices?.[0]?.message;
+  if (!message) throw new Error("No message in image generation response");
+
+  // OpenRouter returns images in message.images as data URLs
+  if (message.images?.[0]?.image_url?.url) {
+    const dataUrl: string = message.images[0].image_url.url;
+    return dataUrl.split(",")[1] ?? dataUrl;
   }
 
-  const imageItem = data.data[0];
-
-  // Handle both b64_json and url response formats
-  if (imageItem.b64_json) {
-    return imageItem.b64_json;
+  // Fallback: images may appear as image_url content blocks
+  if (Array.isArray(message.content)) {
+    const block = message.content.find(
+      (c: { type: string }) => c.type === "image_url"
+    );
+    if (block?.image_url?.url) {
+      const dataUrl: string = block.image_url.url;
+      return dataUrl.split(",")[1] ?? dataUrl;
+    }
   }
 
-  if (imageItem.url) {
-    const imgRes = await fetch(imageItem.url);
-    if (!imgRes.ok) throw new Error("Failed to fetch generated image URL");
-    const buffer = await imgRes.arrayBuffer();
-    return Buffer.from(buffer).toString("base64");
-  }
-
-  throw new Error("Image response contained neither b64_json nor url");
+  throw new Error("Image response contained no image data");
 }

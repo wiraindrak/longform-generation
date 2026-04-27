@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
-import { STYLE_INFO, RATIO_INFO } from "@/lib/types";
+import { THEME_INFO, LAYOUT_INFO, RATIO_INFO } from "@/lib/types";
 import type { MediaBrand, StorySection } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -189,9 +189,10 @@ export default function ArchiveDetailPage() {
   }
 
   const brand = BRAND_CONFIG[gen.media_brand] ?? BRAND_CONFIG.detikcom;
-  const styleLabel = STYLE_INFO[gen.style as keyof typeof STYLE_INFO]?.label ?? gen.style;
+  const themeLabel = THEME_INFO[gen.style as keyof typeof THEME_INFO]?.label ?? gen.style;
+  const layoutLabel = LAYOUT_INFO[gen.output_type as keyof typeof LAYOUT_INFO]?.label ?? gen.output_type;
   const ratioLabel = RATIO_INFO[gen.ratio as keyof typeof RATIO_INFO]?.label ?? gen.ratio;
-  const isThreeSlide = gen.output_type === "three-slide";
+  const isMultiSlide = gen.images.length > 1;
   const date = new Date(gen.created_at).toLocaleString("en-GB", {
     day: "numeric",
     month: "long",
@@ -272,10 +273,11 @@ export default function ArchiveDetailPage() {
 
       {/* Meta strip */}
       <div className="flex flex-wrap gap-2 mb-8 text-xs text-gray-500">
-        <span className="bg-gray-100 px-2.5 py-1 rounded-full">{styleLabel}</span>
+        <span className="bg-gray-100 px-2.5 py-1 rounded-full">{layoutLabel}</span>
+        <span className="bg-gray-100 px-2.5 py-1 rounded-full">{themeLabel}</span>
         <span className="bg-gray-100 px-2.5 py-1 rounded-full">{ratioLabel}</span>
         <span className="bg-gray-100 px-2.5 py-1 rounded-full">
-          {isThreeSlide ? "3-Slide Story" : "Single Image"}
+          {gen.images.length} {gen.images.length === 1 ? "slide" : "slides"}
         </span>
         <span className="bg-gray-100 px-2.5 py-1 rounded-full">
           Brand: {gen.brand_target}
@@ -292,7 +294,7 @@ export default function ArchiveDetailPage() {
           <div
             className={clsx(
               "grid gap-4",
-              isThreeSlide ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 max-w-xl"
+              isMultiSlide ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 max-w-sm"
             )}
           >
             {gen.images.map((img) => (
@@ -316,14 +318,18 @@ export default function ArchiveDetailPage() {
           <div className="space-y-8">
             {gen.story_sections.map((section, i) => (
               <div key={i} className="pb-8 border-b border-gray-100 last:border-0 last:pb-0">
-                {isThreeSlide && (
+                {isMultiSlide && (
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">
-                    Section {i + 1}
+                    Slide {i + 1}
                   </p>
                 )}
                 <h3 className="text-xl font-bold text-gray-900 mb-1">{section.headline}</h3>
                 <p className="text-gray-500 italic text-sm mb-4">{section.subheadline}</p>
-                <p className="text-gray-700 text-sm leading-relaxed">{section.body}</p>
+                <div className="text-gray-700 text-sm leading-relaxed space-y-1">
+                  {section.body.split("\n").map((line, j) => (
+                    <p key={j}>{line}</p>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

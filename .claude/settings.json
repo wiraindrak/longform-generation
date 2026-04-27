@@ -5,7 +5,10 @@
       "Bash(npm install *)",
       "Bash(git init *)",
       "Bash(gh repo *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "WebSearch",
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(railway --version)"
     ],
     "additionalDirectories": [
       "/Users/wiraindrakusuma/AISPACE/longform-generation/app/archive"

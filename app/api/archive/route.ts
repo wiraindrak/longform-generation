@@ -33,13 +33,15 @@ export async function POST(req: NextRequest) {
       mediaBrand,
       brandTarget,
       ratio,
-      outputType,
-      style,
+      slideCount,
+      colorTheme,
+      layout,
       story,
       images,
       thumbnail,
     } = body;
 
+    // Store layout in output_type column, colorTheme in style column for DB compatibility
     const { rows } = await query(
       `INSERT INTO generations
          (topic, media_brand, brand_target, ratio, output_type, style,
@@ -51,8 +53,8 @@ export async function POST(req: NextRequest) {
         mediaBrand,
         brandTarget,
         ratio,
-        outputType,
-        style,
+        layout ?? "data-chart",
+        colorTheme ?? "corporate",
         story.mainHeadline ?? null,
         story.language ?? null,
         JSON.stringify(story.sections ?? []),

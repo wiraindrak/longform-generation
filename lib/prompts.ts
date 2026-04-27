@@ -1,175 +1,146 @@
-import type { GenerationRequest, ImageStyle, MediaBrand } from "./types";
+import type { GenerationRequest, InfographicTheme, InfographicLayout, MediaBrand } from "./types";
 
-const STYLE_VISUAL_GUIDE: Record<ImageStyle, string> = {
-  realistic: `VISUAL STYLE — PHOTOJOURNALISTIC REALISM:
-Create a photorealistic, documentary-style photograph. Requirements:
-- Natural or available lighting, authentic real-world settings
-- Professional DSLR/medium-format camera quality with sharp focus
-- Candid or carefully staged but always believably authentic composition
-- Rich professional color grading, deep shadows, accurate skin tones
-- Cinematic depth of field appropriate for the subject
-- Quality benchmark: Reuters, Associated Press, National Geographic photography`,
+const THEME_VISUAL_GUIDE: Record<InfographicTheme, string> = {
+  corporate: `COLOR THEME — CORPORATE BLUE:
+Primary palette: Navy #1E3A5F (header bars, primary data), Sky blue #3B82F6 (charts, callout elements), Light blue #93C5FD (secondary data), Pure white #FFFFFF (background, text on dark), Light gray #F8FAFC (surface areas), Grid lines #E2E8F0.
+Visual language: Professional, trustworthy, data-driven. Clean grid structure. Sharp rectangular data elements. Business publication quality. Every data element rendered in the navy–blue spectrum.`,
 
-  typography: `VISUAL STYLE — TYPOGRAPHY-DRIVEN DESIGN:
-Create a bold typographic artwork where text is the primary visual element. Requirements:
-- Oversized commanding headline typography as the absolute hero element (even though you can't add real text, simulate the visual weight and layout where text would dominate)
-- Stark contrast between typographic areas and minimal background elements
-- Geometric color blocks or minimal photographic fragments as supporting elements
-- Magazine cover typography layout proportions
-- Quality benchmark: Wired Magazine covers, NYT Magazine spreads, Pentagram studio work`,
+  "dark-neon": `COLOR THEME — DARK NEON:
+Primary palette: Near-black #0F0F1A (background), Cyan #06B6D4 (primary data accent), Purple #A855F7 (secondary accent), Lime #84CC16 (tertiary accent), White #FFFFFF (headlines, labels), Dark navy #1a1a2e (section dividers).
+Visual language: High-tech, bold, maximum contrast. Data visualization with a luminous/glowing quality. Digital dashboard aesthetic. Each data category gets its own neon accent color. Tech and gaming publication energy.`,
 
-  editorial: `VISUAL STYLE — EDITORIAL MAGAZINE:
-Create a glossy, high-end editorial magazine-quality image. Requirements:
-- Professional lifestyle or news photography with deliberate, controlled composition
-- Studio or location lighting that feels aspirational and polished
-- Clear designated zones for headline and text overlays (do not add actual text)
-- Color palette that feels curated and magazine-ready
-- Models or subjects styled to perfection if people are present
-- Quality benchmark: Time Magazine, Vogue, Tempo Indonesia, Bloomberg Businessweek covers`,
+  "warm-bold": `COLOR THEME — WARM BOLD:
+Primary palette: Warm off-white #FFF7ED (background), Orange #F97316 (primary data bars, callouts), Red #EF4444 (accent elements), Amber #F59E0B (highlights, tertiary data), Dark brown #1C1917 (text, headers), Light orange #FED7AA (dividers, backgrounds).
+Visual language: Energetic, urgent, bold editorial feel. Thick header strips in orange. Impactful statistics. Indonesian news media energy. Strong typographic presence implied through visual hierarchy.`,
 
-  cinematic: `VISUAL STYLE — CINEMATIC DRAMA:
-Create a dramatic, cinematic image with movie-poster quality. Requirements:
-- Epic composition with strong foreground/midground/background depth
-- Dramatic directional lighting with deep shadows and warm or cool highlights
-- Film-quality color grade: teal-orange, desaturated cool, or rich warm tones
-- Anamorphic or wide lens visual quality, slight lens flare acceptable
-- Emotional gravitas in every element of the frame
-- Quality benchmark: Christopher Nolan, Denis Villeneuve, or epic Hollywood poster aesthetics`,
+  "clean-white": `COLOR THEME — CLEAN MINIMAL:
+Primary palette: Pure white #FFFFFF (dominant background), Light gray #F3F4F6 (surface areas, panel backgrounds), Medium gray #6B7280 (body text, secondary elements), Near-black #111827 (headlines, primary data), Slate #94A3B8 (grid lines, subtle borders).
+Visual language: Swiss International Style. White space is a deliberate design element. Precise alignment. Minimal use of color — black and gray only with occasional single accent. High-end design publication quality. Data presented through outline and form rather than fill color.`,
 
-  illustrated: `VISUAL STYLE — MODERN FLAT ILLUSTRATION:
-Create a contemporary flat or semi-flat digital illustration. Requirements:
-- Clean vector-art quality with geometric shapes and deliberate color palette
-- Modern illustration style with bold outlines or clean fills
-- Character illustration, scene building, or abstract geometric composition
-- Maximum 5-7 color palette, harmonious and brand-appropriate
-- Scalable, modern digital illustration feel
-- Quality benchmark: Spotify campaign art, Airbnb illustrations, Medium.com feature images`,
+  "vivid-pop": `COLOR THEME — VIVID POP:
+Primary palette: Coral #FF6B6B (primary data category), Yellow #FFD93D (secondary category), Teal #4ECDC4 (tertiary category), Purple #6C63FF (quaternary category), White #FFFFFF (background), Dark #2D3436 (text, headers).
+Visual language: Bright, flat, maximum visual energy. Each data category gets its own saturated color. Social media optimized composition. Modern flat design aesthetic. Bold section dividers in dark color. No gradients — solid fills only.`,
 
-  infographic: `VISUAL STYLE — DATA INFOGRAPHIC:
-Create a data visualization and infographic-style visual composition. Requirements:
-- Charts, graphs, data points, and icons as primary visual elements
-- Clean grid-based layout with strong information hierarchy
-- Color-coded data categories with professional palette
-- Icon systems, percentage circles, bar charts, line graphs integrated naturally
-- Numbers and data as visual focal points (simulate with abstract data visuals)
-- Quality benchmark: Bloomberg data graphics, The Economist charts, FiveThirtyEight visuals`,
+  editorial: `COLOR THEME — EDITORIAL MUTED:
+Primary palette: Warm cream #F5F0E8 (background), Ochre #D4A853 (primary accent, headline bars), Sage green #7D9B6A (secondary accent), Dark brown #2D1F0E (headlines, primary text), Tan #B8966E (data elements, borders), Warm gray #C4B49A (dividers).
+Visual language: Refined, warm, magazine-editorial quality. Print publication aesthetic. Natural, organic tone. Reminiscent of quality Indonesian print media like Tempo or Kompas. Suitable for cultural, lifestyle, and in-depth analysis content.`,
+};
 
-  "dark-dramatic": `VISUAL STYLE — DARK DRAMATIC:
-Create a high-contrast dark-themed image with intense atmospheric mood. Requirements:
-- Near-black or deep dark background as the dominant canvas
-- Vibrant neon, metallic, or saturated accent colors for key focal elements
-- Dramatic rim lighting, colored gels, or atmospheric light sources
-- Mysterious, powerful, or futuristic mood
-- High contrast ratio between darks and highlights
-- Quality benchmark: Gaming brand campaigns, dark editorial fashion photography, cyberpunk aesthetics`,
+const LAYOUT_VISUAL_GUIDE: Record<InfographicLayout, string> = {
+  "data-chart": `LAYOUT TYPE — DATA VISUALIZATION:
+Structure: Bar charts, line graphs, or pie/donut charts occupy 60% of the composition. Labeled axes with grid lines. Charts are the clear visual hero of every panel. Supporting text in compact zones around the chart.
+Visual hierarchy: Chart area → Headline strip → Key statistic callout → Caption/source line.
+Specific elements: Vertical or horizontal bar chart with 4-6 bars, legend, baseline axis. Optional: small donut chart as secondary element in corner. All data elements sized to be clearly readable.`,
 
-  "clean-minimal": `VISUAL STYLE — CLEAN MINIMAL:
-Create a minimalist image with white space as a primary design element. Requirements:
-- Predominantly white, light gray, or very light background
-- Single or very few focal elements with generous breathing room
-- Precise geometric composition, perfect alignment
-- Swiss International Style design principles
-- Muted, refined color palette — one accent color maximum
-- Quality benchmark: Apple product photography, Muji brand aesthetic, Swiss graphic design posters`,
+  "key-stats": `LAYOUT TYPE — KEY STATISTICS:
+Structure: 2-4 oversized statistics (percentages, numbers, monetary values) as the dominant design feature. Each number rendered at hero scale (visually 60-80pt weight). Each stat paired with a short 2-4 word label below it. Stats arranged in a clean grid.
+Visual hierarchy: Hero statistic number → Stat label → Context headline → Brief supporting body text.
+Specific elements: Rectangular stat cards arranged 2×1 or 2×2. Bold divider line separating cards. Large percentage or number value as the absolute focal point of each card.`,
 
-  "vintage-press": `VISUAL STYLE — VINTAGE PRESS:
-Create a vintage newspaper or historical print media aesthetic. Requirements:
-- Aged paper or worn surface texture, authentic grain and noise
-- Sepia-toned, monochrome, or very limited 2-3 color palette
-- Halftone printing simulation, ink bleed artifacts
-- Retro typographic layout references without actual text
-- Historical documentary or archival photography feel
-- Quality benchmark: LIFE Magazine 1950s-60s archives, vintage propaganda posters, old broadsheet photography`,
+  timeline: `LAYOUT TYPE — TIMELINE:
+Structure: Chronological flow with 3-5 clearly marked time points (years, dates, or numbered stages). A visual spine line connecting all points — horizontal for landscape ratios, vertical for portrait. Each node: date label + event headline + 1-2 line description.
+Visual hierarchy: Timeline spine → Date/milestone markers → Event headlines → Brief descriptions.
+Specific elements: Circular or diamond node markers at each event point. Alternating text placement (above/below or left/right of spine). Directional arrow at end of timeline showing continuation.`,
 
-  "vibrant-gradient": `VISUAL STYLE — VIBRANT GRADIENT:
-Create a bold, contemporary gradient-based artwork with maximum visual energy. Requirements:
-- Rich, flowing, dynamic color gradients as the primary visual language
-- Contemporary digital art sensibility with maximum color saturation
-- Abstract or semi-abstract composition with gradient as atmosphere
-- Energetic, optimistic, modern brand advertising quality
-- Layered gradients with depth and dimensional feel
-- Quality benchmark: Spotify playlist art, Instagram campaign visuals, modern brand identity campaigns`,
+  comparison: `LAYOUT TYPE — COMPARISON:
+Structure: Two equal-width columns, clearly labeled (A vs B, Option 1 vs Option 2, Before vs After, etc.). Matching rows of data points that allow direct visual comparison. A verdict or summary callout at the bottom spanning both columns.
+Visual hierarchy: Column headers (bold, contrasting color) → Comparative data rows → Highlight row for key differentiator → Summary callout.
+Specific elements: Vertical dividing line between columns. Checkmarks or icons indicating advantages. Equal visual weight per column. Color tinting to distinguish columns.`,
+
+  "step-process": `LAYOUT TYPE — STEP-BY-STEP PROCESS:
+Structure: 3-6 numbered steps in sequential flow. Each step: large circle with step number + icon area + headline + 1-2 line description. Arrows or connecting lines flow from step to step.
+Visual hierarchy: Step number (bold, prominent) → Step headline → Brief description → Connecting arrow to next step.
+Specific elements: Numbered circles styled in primary theme color. Step cards with clear left-to-right or top-to-bottom reading flow. Final step visually emphasized as destination/goal. Progress connector line running through all steps.`,
+
+  "fact-icons": `LAYOUT TYPE — FACT + ICON LIST:
+Structure: 4-6 rows, each containing: a circular icon placeholder (representing the category), a bold fact headline (1 line), and 1-2 lines of supporting detail text. All rows aligned to a clean grid.
+Visual hierarchy: Icon circle → Bold fact headline → Supporting detail text → Subtle row divider.
+Specific elements: Icon circles in primary theme color, icon is implied through abstract circle fill. Each row separated by fine horizontal line. Alternating subtle background tints optional. Source credit at bottom.`,
 };
 
 const BRAND_EDITORIAL_GUIDE: Record<MediaBrand, string> = {
   detikcom: `MEDIA BRAND — DETIKCOM:
-Editorial voice: Fast-paced, urgent, informative, accessible to mass Indonesian audience.
-Visual aesthetic: Bold red (#E00000) and white color palette. Direct and impactful visual storytelling. Breaking news energy with clarity.
-Brand placement: Include detikcom's red color prominently. Clean, news-appropriate composition without clutter.`,
+Brand identity: Indonesia's #1 digital news brand. Bold red #E00000 and white. Mass market, fast-paced, impactful.
+Integration: Include a red #E00000 header strip or brand bar. Bold headline zone. News-urgency visual energy. Brand color accents key statistics or callout boxes.`,
 
   "cnn-indonesia": `MEDIA BRAND — CNN INDONESIA:
-Editorial voice: International perspective, balanced, sophisticated analysis, authoritative global outlook.
-Visual aesthetic: Deep red and dark overlay palette. CNN's authoritative and trustworthy visual language. Professional, measured, and credible.
-Brand placement: CNN's red brand color as an accent. Dark overlays with strong contrast. International news production quality.`,
+Brand identity: International perspective, authoritative, balanced analysis. Deep CNN red and dark overlays.
+Integration: CNN red accent strip in header or footer. Dark professional overlays on data sections. International data journalism production quality. Authoritative and trustworthy color language.`,
 
   "cnbc-indonesia": `MEDIA BRAND — CNBC INDONESIA:
-Editorial voice: Business-focused, data-driven, financial markets perspective, executive and professional audience.
-Visual aesthetic: Navy blue (#003087) and gold/yellow accent palette. Financial and business aesthetic. Data-driven and authoritative visual tone.
-Brand placement: Navy and gold color accents. Business professional setting or financial imagery. Executive-level production quality.`,
+Brand identity: Business and finance focused, data-driven, executive audience. Navy #003087 and gold #FFB800.
+Integration: Navy #003087 header bar or frame element. Gold #FFB800 accent on key statistics. Financial data visualization aesthetic. Executive-level presentation quality. Market and business data emphasis.`,
 };
 
 export function buildStorySystemPrompt(): string {
-  return `You are a senior editorial content director and investigative journalist with expertise in Indonesian media. You create compelling, well-researched long-form visual content for major Indonesian media outlets.
+  return `You are a senior data journalist and infographic editor specializing in Indonesian media. You create structured, data-rich content designed specifically for visual infographic layouts.
 
-Your story crafting must:
-1. Be deeply researched and factually grounded (or compellingly creative if the topic is fictional/conceptual)
-2. Match the specific media brand's editorial voice and visual identity
-3. Naturally and elegantly integrate the brand partner without feeling like advertising
-4. Generate vivid, cinematically specific image prompts that will produce stunning visuals
-5. Write in the same language as the topic (Bahasa Indonesia if topic is in Indonesian, English if in English)
+Your output must:
+1. Surface compelling statistics, percentages, rankings, and data points that make powerful infographic visuals
+2. Structure body copy as concise bullet-point facts — NOT long prose paragraphs
+3. Match the specific media brand's editorial voice and visual identity
+4. Integrate the brand partner naturally without feeling like advertising
+5. Generate highly specific visual descriptions for infographic image generation
+6. Write headlines and body copy in the same language as the topic
 
 CRITICAL: Respond ONLY with valid JSON matching the exact schema. No markdown, no extra text.`;
 }
 
 export function buildStoryUserPrompt(req: GenerationRequest): string {
-  const sectionCount = req.outputType === "single" ? 1 : 3;
+  const sectionCount = req.slideCount;
   const mediaBrandMap: Record<MediaBrand, string> = {
     detikcom: "detikcom",
     "cnn-indonesia": "CNN Indonesia",
     "cnbc-indonesia": "CNBC Indonesia",
   };
-  const styleMap: Record<string, string> = {
-    realistic: "Photojournalistic Realism",
-    typography: "Typography-Driven Design",
-    editorial: "Editorial Magazine",
-    cinematic: "Cinematic Drama",
-    illustrated: "Flat Illustration",
-    infographic: "Data Infographic",
-    "dark-dramatic": "Dark Dramatic",
-    "clean-minimal": "Clean Minimal",
-    "vintage-press": "Vintage Press",
-    "vibrant-gradient": "Vibrant Gradient",
+  const layoutMap: Record<InfographicLayout, string> = {
+    "data-chart": "Data Visualization Charts",
+    "key-stats": "Key Statistics Showcase",
+    timeline: "Timeline / Sequential Flow",
+    comparison: "Side-by-Side Comparison",
+    "step-process": "Step-by-Step Process",
+    "fact-icons": "Fact + Icon List",
+  };
+  const themeMap: Record<InfographicTheme, string> = {
+    corporate: "Corporate Blue",
+    "dark-neon": "Dark Neon",
+    "warm-bold": "Warm Bold",
+    "clean-white": "Clean Minimal",
+    "vivid-pop": "Vivid Pop",
+    editorial: "Editorial Muted",
   };
 
-  return `Create compelling long-form visual content for:
+  return `Create structured infographic content for:
 
-TOPIC/MOMENT: ${req.topic}
+TOPIC: ${req.topic}
 MEDIA BRAND: ${mediaBrandMap[req.mediaBrand]}
 BRAND PARTNER: ${req.brandTarget}
-NUMBER OF SECTIONS: ${sectionCount}
-VISUAL STYLE: ${styleMap[req.style]}
-IMAGE RATIO: ${req.ratio}
+INFOGRAPHIC LAYOUT: ${layoutMap[req.layout]}
+COLOR THEME: ${themeMap[req.colorTheme]}
+NUMBER OF SLIDES: ${sectionCount}
+ASPECT RATIO: ${req.ratio}
 
 REQUIREMENTS:
-- Research the topic thoroughly and find the most compelling narrative angle
-- The brand partner "${req.brandTarget}" must be woven naturally into the story content
-- Each imagePrompt must be 200-300 words of highly specific visual description
-- Image prompts must describe EXACTLY what to render for a ${styleMap[req.style]} visual
-- Include specific colors, lighting, composition, mood, subjects, and atmosphere in each image prompt
-- The image prompt should reference the ${mediaBrandMap[req.mediaBrand]} visual identity
-- Image prompt should naturally include "${req.brandTarget}" brand elements (product, logo placement, brand colors, or brand context)
-- Optimize composition descriptions for ${req.ratio} aspect ratio
+- Surface compelling statistics, percentages, rankings, and data points relevant to the topic
+- Body copy must be 4-6 concise bullet-point facts (each starting with "• "), NOT prose paragraphs
+- Include specific numbers, percentages, and verifiable data in bullet points
+- The brand partner "${req.brandTarget}" must appear naturally within the data story
+- Each imagePrompt must be 200-300 words describing a specific infographic visual
+- Image prompts must describe EXACT infographic elements: chart types, data values, icon placements, color zones, layout structure
+- Reference the ${themeMap[req.colorTheme]} color theme palette in visual descriptions
+- Optimize visual descriptions for ${req.ratio} aspect ratio infographic composition
+- Image prompts should reference "${req.brandTarget}" brand elements naturally (product, brand context, data attribution)
 
-Respond with ONLY this JSON structure (no extra text):
+Respond with ONLY this JSON (no extra text, no markdown):
 {
-  "mainHeadline": "Compelling main headline in the topic's language",
+  "mainHeadline": "Compelling infographic headline in topic's language",
   "language": "id or en",
   "sections": [
     {
-      "headline": "Section headline",
-      "subheadline": "Engaging subheadline or deck copy (1-2 sentences)",
-      "body": "300-500 word editorial body copy for this section. Well-researched, engaging, journalistic quality.",
-      "imagePrompt": "200-300 word hyper-specific visual description for the image generator covering: exact scene, subjects, lighting, colors, mood, composition, style markers, brand integration, and ratio-optimized framing."
+      "headline": "Slide headline — short and punchy",
+      "subheadline": "One-line deck copy or key data callout",
+      "body": "• Fact one with specific number\\n• Fact two with percentage\\n• Fact three with ranking or comparison\\n• Fact four with data point\\n• Fact five with trend or projection",
+      "imagePrompt": "200-300 word description of the exact infographic visual: layout zones, chart types and values, data callout positions, icon placements, color applications per theme, brand integration point, typography hierarchy zones, and how the ${req.ratio} ratio frames the composition."
     }
   ]
 }`;
@@ -180,27 +151,35 @@ export function buildImagePrompt(
   req: GenerationRequest,
   sectionIndex: number
 ): string {
-  const styleGuide = STYLE_VISUAL_GUIDE[req.style];
+  const themeGuide = THEME_VISUAL_GUIDE[req.colorTheme];
+  const layoutGuide = LAYOUT_VISUAL_GUIDE[req.layout];
   const brandGuide = BRAND_EDITORIAL_GUIDE[req.mediaBrand];
-  const sectionLabel =
-    req.outputType === "single"
-      ? "single hero image"
-      : `slide ${sectionIndex + 1} of 3`;
+  const slideLabel =
+    req.slideCount === 1
+      ? "single infographic"
+      : `slide ${sectionIndex + 1} of ${req.slideCount}`;
 
-  return `${styleGuide}
+  return `TASK: Generate a professional infographic image.
+
+${themeGuide}
+
+${layoutGuide}
 
 ${brandGuide}
 
-CONTENT DIRECTION (${sectionLabel}):
+CONTENT DIRECTION (${slideLabel}):
 ${imagePromptFromStory}
 
 TECHNICAL REQUIREMENTS:
-- Ultra high-resolution, professional production quality
-- No visible text, watermarks, or UI elements in the image
-- No borders or frames — full bleed composition
-- Optimized for ${req.ratio} aspect ratio with subject placement appropriate to ratio
-- Suitable for professional publication at ${req.ratio} format
-- The brand partner "${req.brandTarget}" should appear naturally integrated (product visible, brand colors present, or contextually referenced) without feeling forced
+- This is an INFOGRAPHIC — structured data visualization, NOT a photograph or illustration
+- Apply the specified color theme consistently to ALL elements: backgrounds, bars, text zones, dividers
+- Apply the specified layout type as the structural skeleton of the entire composition
+- Include realistic data visualization elements: charts with visible data, numbers, icons, callout boxes
+- No photographic elements — pure graphic/typographic infographic design
+- The brand partner "${req.brandTarget}" integrated naturally (data source attribution, featured brand callout, or contextual reference)
+- Aspect ratio: ${req.ratio} — the infographic layout must be fully optimized for this format
+- Full-bleed composition — no borders, frames, or watermarks
+- Professional publication quality suitable for ${req.mediaBrand}
 
-Generate a single stunning image that perfectly executes all of the above.`;
+Generate a single stunning infographic that perfectly executes all of the above.`;
 }

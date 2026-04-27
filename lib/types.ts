@@ -1,25 +1,31 @@
 export type MediaBrand = "detikcom" | "cnn-indonesia" | "cnbc-indonesia";
-export type OutputType = "single" | "three-slide";
 export type ImageRatio = "1:1" | "4:5" | "9:16" | "16:9" | "3:4";
-export type ImageStyle =
-  | "realistic"
-  | "typography"
-  | "editorial"
-  | "cinematic"
-  | "illustrated"
-  | "infographic"
-  | "dark-dramatic"
-  | "clean-minimal"
-  | "vintage-press"
-  | "vibrant-gradient";
+export type SlideCount = 1 | 3 | 5;
+
+export type InfographicTheme =
+  | "corporate"
+  | "dark-neon"
+  | "warm-bold"
+  | "clean-white"
+  | "vivid-pop"
+  | "editorial";
+
+export type InfographicLayout =
+  | "data-chart"
+  | "key-stats"
+  | "timeline"
+  | "comparison"
+  | "step-process"
+  | "fact-icons";
 
 export interface GenerationRequest {
   topic: string;
   mediaBrand: MediaBrand;
   brandTarget: string;
   ratio: ImageRatio;
-  outputType: OutputType;
-  style: ImageStyle;
+  slideCount: SlideCount;
+  colorTheme: InfographicTheme;
+  layout: InfographicLayout;
 }
 
 export interface StorySection {
@@ -55,79 +61,69 @@ export const MEDIA_BRAND_LABELS: Record<MediaBrand, string> = {
   "cnbc-indonesia": "CNBC Indonesia",
 };
 
-export const STYLE_INFO: Record<
-  ImageStyle,
-  { label: string; description: string; keywords: string; gradient: string }
+export const THEME_INFO: Record<
+  InfographicTheme,
+  { label: string; description: string; colors: string[] }
 > = {
-  realistic: {
-    label: "Realistic",
-    description:
-      "Photojournalistic photography with natural lighting and authentic documentary feel.",
-    keywords: "Photography · Documentary · Natural",
-    gradient: "from-sky-900 via-blue-800 to-amber-800",
+  corporate: {
+    label: "Corporate Blue",
+    description: "Professional navy & blue palette for business and institutional content.",
+    colors: ["#1E3A5F", "#3B82F6", "#93C5FD", "#F8FAFC"],
   },
-  typography: {
-    label: "Typography",
-    description:
-      "Bold oversized text as the hero visual element. Text IS the art.",
-    keywords: "Bold Text · Contrast · Graphic",
-    gradient: "from-zinc-900 via-zinc-800 to-zinc-950",
+  "dark-neon": {
+    label: "Dark Neon",
+    description: "Dark background with vivid neon accents for high-impact data storytelling.",
+    colors: ["#0F0F1A", "#06B6D4", "#A855F7", "#84CC16"],
+  },
+  "warm-bold": {
+    label: "Warm Bold",
+    description: "Energetic orange and red tones with bold editorial punch.",
+    colors: ["#FFF7ED", "#F97316", "#EF4444", "#1C1917"],
+  },
+  "clean-white": {
+    label: "Clean Minimal",
+    description: "White-space dominant with Swiss grid precision and elegant restraint.",
+    colors: ["#FFFFFF", "#F3F4F6", "#6B7280", "#111827"],
+  },
+  "vivid-pop": {
+    label: "Vivid Pop",
+    description: "Multi-color bright flat palette optimized for social media impact.",
+    colors: ["#FF6B6B", "#FFD93D", "#4ECDC4", "#6C63FF"],
   },
   editorial: {
-    label: "Editorial Magazine",
-    description:
-      "Glossy magazine-quality imagery with space for headlines and overlays.",
-    keywords: "Magazine · Polished · Aspirational",
-    gradient: "from-rose-900 via-pink-800 to-orange-800",
+    label: "Editorial Muted",
+    description: "Warm cream, ochre, and sage for a refined magazine editorial feel.",
+    colors: ["#F5F0E8", "#D4A853", "#7D9B6A", "#2D1F0E"],
   },
-  cinematic: {
-    label: "Cinematic Drama",
-    description:
-      "Movie-poster composition with dramatic lighting and epic color grading.",
-    keywords: "Film · Epic · High Contrast",
-    gradient: "from-teal-950 via-slate-800 to-orange-900",
+};
+
+export const LAYOUT_INFO: Record<
+  InfographicLayout,
+  { label: string; description: string }
+> = {
+  "data-chart": {
+    label: "Data Charts",
+    description: "Bar graphs, line charts, and pie charts as primary visual elements.",
   },
-  illustrated: {
-    label: "Flat Illustration",
-    description:
-      "Modern flat vector illustration with clean shapes and contemporary colors.",
-    keywords: "Vector · Flat · Geometric",
-    gradient: "from-blue-900 via-violet-800 to-purple-900",
+  "key-stats": {
+    label: "Key Statistics",
+    description: "Large hero numbers and percentages dominate the composition.",
   },
-  infographic: {
-    label: "Data Infographic",
-    description:
-      "Charts, statistics, and icons as the primary visual elements. Data as art.",
-    keywords: "Data · Charts · Icons",
-    gradient: "from-cyan-900 via-blue-900 to-indigo-900",
+  timeline: {
+    label: "Timeline",
+    description: "Chronological events or milestones with clear sequential flow.",
   },
-  "dark-dramatic": {
-    label: "Dark Dramatic",
-    description:
-      "High-contrast dark background with neon or bold accent colors. Intense mood.",
-    keywords: "Dark · Neon · Moody",
-    gradient: "from-purple-950 via-violet-900 to-fuchsia-950",
+  comparison: {
+    label: "Comparison",
+    description: "Side-by-side visual comparison of two or more items.",
   },
-  "clean-minimal": {
-    label: "Clean Minimal",
-    description:
-      "White-space dominant with precise geometry and Swiss design principles.",
-    keywords: "White Space · Swiss · Elegant",
-    gradient: "from-gray-800 via-slate-700 to-gray-900",
+  "step-process": {
+    label: "Step Process",
+    description: "Numbered sequential steps guiding through a process or journey.",
   },
-  "vintage-press": {
-    label: "Vintage Press",
-    description:
-      "Old newspaper and print media aesthetic with grain, sepia, and retro typography.",
-    keywords: "Retro · Grain · Sepia",
-    gradient: "from-yellow-900 via-amber-800 to-stone-900",
-  },
-  "vibrant-gradient": {
-    label: "Vibrant Gradient",
-    description:
-      "Bold flowing color gradients with contemporary digital art energy.",
-    keywords: "Gradient · Vivid · Dynamic",
-    gradient: "from-pink-900 via-rose-800 to-orange-700",
+  "fact-icons": {
+    label: "Fact + Icons",
+    description: "Icon-driven fact list with short descriptive text per point.",
   },
 };
 
@@ -135,39 +131,9 @@ export const RATIO_INFO: Record<
   ImageRatio,
   { label: string; desc: string; w: number; h: number; apiSize: string }
 > = {
-  "1:1": {
-    label: "1:1",
-    desc: "Square",
-    w: 1,
-    h: 1,
-    apiSize: "1024x1024",
-  },
-  "4:5": {
-    label: "4:5",
-    desc: "Portrait",
-    w: 4,
-    h: 5,
-    apiSize: "1024x1024",
-  },
-  "9:16": {
-    label: "9:16",
-    desc: "Stories",
-    w: 9,
-    h: 16,
-    apiSize: "1024x1792",
-  },
-  "16:9": {
-    label: "16:9",
-    desc: "Landscape",
-    w: 16,
-    h: 9,
-    apiSize: "1792x1024",
-  },
-  "3:4": {
-    label: "3:4",
-    desc: "Standard",
-    w: 3,
-    h: 4,
-    apiSize: "1024x1024",
-  },
+  "1:1": { label: "1:1", desc: "Square", w: 1, h: 1, apiSize: "1024x1024" },
+  "4:5": { label: "4:5", desc: "Portrait", w: 4, h: 5, apiSize: "1024x1024" },
+  "9:16": { label: "9:16", desc: "Stories", w: 9, h: 16, apiSize: "1024x1792" },
+  "16:9": { label: "16:9", desc: "Landscape", w: 16, h: 9, apiSize: "1792x1024" },
+  "3:4": { label: "3:4", desc: "Standard", w: 3, h: 4, apiSize: "1024x1024" },
 };

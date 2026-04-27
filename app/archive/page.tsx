@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import type { MediaBrand } from "@/lib/types";
-import { STYLE_INFO, RATIO_INFO } from "@/lib/types";
+import { THEME_INFO, LAYOUT_INFO, RATIO_INFO } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,7 +68,8 @@ function timeAgo(dateStr: string): string {
 
 function ArchiveCard({ entry }: { entry: ArchiveEntry }) {
   const brand = BRAND_CONFIG[entry.media_brand] ?? BRAND_CONFIG.detikcom;
-  const styleLabel = STYLE_INFO[entry.style as keyof typeof STYLE_INFO]?.label ?? entry.style;
+  const themeLabel = THEME_INFO[entry.style as keyof typeof THEME_INFO]?.label ?? entry.style;
+  const layoutLabel = LAYOUT_INFO[entry.output_type as keyof typeof LAYOUT_INFO]?.label ?? entry.output_type;
   const ratioLabel = RATIO_INFO[entry.ratio as keyof typeof RATIO_INFO]?.label ?? entry.ratio;
 
   return (
@@ -135,7 +136,10 @@ function ArchiveCard({ entry }: { entry: ArchiveEntry }) {
         {/* Meta badges */}
         <div className="flex flex-wrap gap-1 mt-auto pt-2">
           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-            {styleLabel}
+            {layoutLabel}
+          </span>
+          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+            {themeLabel}
           </span>
           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
             {ratioLabel}
