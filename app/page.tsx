@@ -560,6 +560,8 @@ export default function Home() {
   const [outputType, setOutputType] = useState<OutputType>("single");
   const [style, setStyle] = useState<ImageStyle>("editorial");
   const [status, setStatus] = useState<GenerationStatus>({ phase: "idle" });
+  const [archiveSave, setArchiveSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [archiveId, setArchiveId] = useState<string | null>(null);
 
   const isGenerating = status.phase === "generating";
   const isReady = topic.trim().length > 5 && brandTarget.trim().length > 1 && !isGenerating;
@@ -567,6 +569,7 @@ export default function Home() {
   const handleGenerate = useCallback(async () => {
     if (!isReady) return;
 
+    setArchiveSave("idle");
     setStatus({
       phase: "generating",
       step: "start",
@@ -652,6 +655,53 @@ export default function Home() {
 
           if (event.type === "done" && currentStory) {
             setStatus({ phase: "done", story: currentStory, images: currentImages });
+
+            // Auto-save to archive
+            setArchiveSave("saving");
+            (async () => {
+              try {
+                // Create JPEG thumbnail from first image via canvas
+                let thumbnail: string | null = null;
+                if (currentImages[0]?.base64) {
+                  thumbnail = await new Promise<string>((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement("canvas");
+                      const maxW = 480;
+                      canvas.width = maxW;
+                      canvas.height = Math.round(maxW / (img.width / img.height));
+                      const ctx = canvas.getContext("2d");
+                      if (!ctx) { resolve(""); return; }
+                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      resolve(canvas.toDataURL("image/jpeg", 0.72).split(",")[1] ?? "");
+                    };
+                    img.onerror = () => resolve("");
+                    img.src = `data:image/png;base64,${currentImages[0].base64}`;
+                  });
+                }
+                const res = await fetch("/api/archive", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    topic: topic.trim(),
+                    mediaBrand,
+                    brandTarget: brandTarget.trim(),
+                    ratio,
+                    outputType,
+                    style,
+                    story: currentStory,
+                    images: currentImages,
+                    thumbnail,
+                  }),
+                });
+                if (!res.ok) throw new Error("Save failed");
+                const saved = await res.json();
+                setArchiveId(saved.id ?? null);
+                setArchiveSave("saved");
+              } catch {
+                setArchiveSave("error");
+              }
+            })();
           }
         }
       }
@@ -663,7 +713,7 @@ export default function Home() {
     }
   }, [isReady, topic, mediaBrand, brandTarget, ratio, outputType, style]);
 
-  const handleReset = () => setStatus({ phase: "idle" });
+  const handleReset = () => { setStatus({ phase: "idle" }); setArchiveSave("idle"); setArchiveId(null); };
 
   const pendingImageSlots =
     status.phase === "generating"
@@ -686,28 +736,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-gray-900 rounded-md flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="1" width="5" height="5" fill="white" />
-              <rect x="8" y="1" width="5" height="5" fill="white" />
-              <rect x="1" y="8" width="5" height="5" fill="white" />
-              <rect x="8" y="8" width="5" height="5" fill="white" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-bold tracking-[0.1em] text-gray-900">LONGFORM</p>
-            <p className="text-[10px] text-gray-400 tracking-wider">AI CONTENT GENERATOR</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-gray-400">Kimi K2.5 · GPT Image</span>
-        </div>
-      </header>
-
       <main className="max-w-6xl mx-auto px-4 py-10 pb-20">
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <div className="text-center mb-12">
@@ -914,6 +942,29 @@ export default function Home() {
         {/* ── Progress & Results ─────────────────────────────────────────────── */}
         {(status.phase === "generating" || status.phase === "done" || status.phase === "error") && (
           <div className="mt-10 border-t border-gray-200 pt-10">
+            {/* Archive save status */}
+            {archiveSave !== "idle" && (
+              <div className={clsx(
+                "inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full mb-6",
+                archiveSave === "saving" && "bg-gray-100 text-gray-500",
+                archiveSave === "saved"  && "bg-emerald-50 text-emerald-700",
+                archiveSave === "error"  && "bg-red-50 text-red-600",
+              )}>
+                {archiveSave === "saving" && (
+                  <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Saving to archive…</>
+                )}
+                {archiveSave === "saved" && (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Saved to archive
+                    {archiveId && (
+                      <a href={`/archive/${archiveId}`} className="ml-1 underline font-semibold">View →</a>
+                    )}
+                  </>
+                )}
+                {archiveSave === "error" && "⚠ Archive save failed"}
+              </div>
+            )}
             {/* Progress bar */}
             {status.phase === "generating" && (
               <div className="mb-8">

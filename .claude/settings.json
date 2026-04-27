@@ -3,7 +3,12 @@
     "allow": [
       "Bash(gh auth *)",
       "Bash(npm install *)",
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(gh repo *)",
+      "Bash(npm run *)"
+    ],
+    "additionalDirectories": [
+      "/Users/wiraindrakusuma/AISPACE/longform-generation/app/archive"
     ]
   }
 }

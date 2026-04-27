@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Nav from "@/components/Nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +8,8 @@ export const metadata: Metadata = {
     "Generate stunning long-form visual content for Indonesian media brands. Powered by Kimi K2.5 and GPT Image.",
   openGraph: {
     title: "LONGFORM — AI Content Generator",
-    description: "Generate stunning long-form visual content for Indonesian media brands.",
+    description:
+      "Generate stunning long-form visual content for Indonesian media brands.",
     type: "website",
   },
 };
@@ -18,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -31,7 +33,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#080808] text-[#e8e8e8]">
+      <body className="min-h-screen bg-gray-50 text-gray-900">
+        <Nav />
         {children}
       </body>
     </html>
