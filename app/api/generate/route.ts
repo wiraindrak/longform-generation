@@ -92,6 +92,13 @@ export async function POST(req: NextRequest) {
         const apiSize = RATIO_INFO[ratio as ImageRatio]?.apiSize ?? "1024x1024";
         const topicSlug = makeSlug(topic);
 
+        // Keep SSE connection alive during long image generation waits.
+        // Railway/nginx will close idle connections; comment events prevent that.
+        const keepAlive = setInterval(() => {
+          try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
+        }, 10_000);
+
+        try {
         for (let i = 0; i < sectionCount; i++) {
           const section = story.sections[i];
           const pctPerImage = (95 - progressAfterStory) / sectionCount;
@@ -120,6 +127,9 @@ export async function POST(req: NextRequest) {
 
           send({ type: "image_done", image: generatedImage });
           stepsDone++;
+        }
+        } finally {
+          clearInterval(keepAlive);
         }
 
         send({ type: "progress", step: "finalizing", message: "Done!", percent: 100 });

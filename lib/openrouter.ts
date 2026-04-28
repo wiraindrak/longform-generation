@@ -52,20 +52,34 @@ export async function generateImageWithGPT(
   size: string,
   ratio: string
 ): Promise<string> {
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      model: "openai/gpt-5.4-image-2",
-      messages: [{ role: "user", content: prompt }],
-      modalities: ["image", "text"],
-      image_config: {
-        aspect_ratio: ratio,
-        image_size: "2K",
-        quality: "high",
-      },
-    }),
-  });
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 240_000); // 4-minute hard limit
+
+  let res: Response;
+  try {
+    res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      method: "POST",
+      headers: getHeaders(),
+      signal: abort.signal,
+      body: JSON.stringify({
+        model: "openai/gpt-5.4-image-2",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+        image_config: {
+          aspect_ratio: ratio,
+          image_size: "2K",
+          quality: "high",
+        },
+      }),
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as Error).name === "AbortError") {
+      throw new Error("Image generation timed out after 4 minutes");
+    }
+    throw e;
+  }
+  clearTimeout(timer);
 
   if (!res.ok) {
     const errText = await res.text();
