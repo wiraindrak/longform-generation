@@ -3,13 +3,13 @@ import Nav from "@/components/Nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LONGFORM — AI Content Generator",
+  title: "INFOGRAPHIC — AI Visual Generator",
   description:
-    "Generate stunning long-form visual content for Indonesian media brands. Powered by Kimi K2.5 and GPT Image.",
+    "Turn any topic into a publication-ready infographic for Indonesian media brands. Powered by Kimi K2.5 and GPT Image.",
   openGraph: {
-    title: "LONGFORM — AI Content Generator",
+    title: "INFOGRAPHIC — AI Visual Generator",
     description:
-      "Generate stunning long-form visual content for Indonesian media brands.",
+      "Turn any topic into a publication-ready infographic for Indonesian media brands.",
     type: "website",
   },
 };
