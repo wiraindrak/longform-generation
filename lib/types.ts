@@ -8,7 +8,13 @@ export type InfographicTheme =
   | "warm-bold"
   | "clean-white"
   | "vivid-pop"
-  | "editorial";
+  | "editorial"
+  | "midnight"
+  | "nature"
+  | "bold-black"
+  | "pastel"
+  | "rose-coral"
+  | "mono-grid";
 
 export type InfographicLayout =
   | "data-chart"
@@ -16,7 +22,13 @@ export type InfographicLayout =
   | "timeline"
   | "comparison"
   | "step-process"
-  | "fact-icons";
+  | "fact-icons"
+  | "ranked-list"
+  | "magazine-cover"
+  | "flowchart"
+  | "bubble-chart"
+  | "pull-quote"
+  | "two-panel";
 
 export interface GenerationRequest {
   topic: string;
@@ -95,6 +107,36 @@ export const THEME_INFO: Record<
     description: "Warm cream, ochre, and sage for a refined magazine editorial feel.",
     colors: ["#F5F0E8", "#D4A853", "#7D9B6A", "#2D1F0E"],
   },
+  midnight: {
+    label: "Midnight Premium",
+    description: "Near-black with silver and gold accents for premium authoritative content.",
+    colors: ["#0D1117", "#8B949E", "#FFD700", "#FFFFFF"],
+  },
+  nature: {
+    label: "Nature Green",
+    description: "Forest green and sage tones for sustainability and environment topics.",
+    colors: ["#F0F7EE", "#2D6A4F", "#52B788", "#74C69D"],
+  },
+  "bold-black": {
+    label: "Bold Black",
+    description: "Pure black canvas with stark white text and a single vivid accent. Maximum contrast.",
+    colors: ["#000000", "#FFFFFF", "#00E5FF", "#333333"],
+  },
+  pastel: {
+    label: "Pastel Soft",
+    description: "Gentle blues and lavender for approachable lifestyle and consumer content.",
+    colors: ["#FAFAFE", "#93C5FD", "#C4B5FD", "#6EE7B7"],
+  },
+  "rose-coral": {
+    label: "Rose Coral",
+    description: "Pink and coral tones for lifestyle, fashion, beauty, and food content.",
+    colors: ["#FFF5F7", "#F9A8D4", "#FF6B6B", "#E11D48"],
+  },
+  "mono-grid": {
+    label: "Mono Grid",
+    description: "Strict monochrome with grid structure and a single red accent. Technical precision.",
+    colors: ["#FFFFFF", "#111827", "#6B7280", "#EF4444"],
+  },
 };
 
 export const LAYOUT_INFO: Record<
@@ -124,6 +166,30 @@ export const LAYOUT_INFO: Record<
   "fact-icons": {
     label: "Fact + Icons",
     description: "Icon-driven fact list with short descriptive text per point.",
+  },
+  "ranked-list": {
+    label: "Ranked List",
+    description: "Top N ranking with position numbers and proportional horizontal bars.",
+  },
+  "magazine-cover": {
+    label: "Magazine Cover",
+    description: "Hero visual zone with branded header strip and bold headline overlay.",
+  },
+  flowchart: {
+    label: "Flowchart",
+    description: "Decision flow with connected boxes, diamond choices, and directional arrows.",
+  },
+  "bubble-chart": {
+    label: "Bubble Chart",
+    description: "Proportional circles where size represents data quantity at a glance.",
+  },
+  "pull-quote": {
+    label: "Pull Quote",
+    description: "Oversized hero statistic or statement with 2–3 supporting data cards.",
+  },
+  "two-panel": {
+    label: "Two Panel",
+    description: "Split layout: bold visual or chart on the left, data breakdown on the right.",
   },
 };
 

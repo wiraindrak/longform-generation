@@ -158,6 +158,128 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
           <rect x="145" y="9" width="40" height="3" rx="1" fill="#B8966E" opacity="0.35" />
         </svg>
       );
+
+    case "midnight":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#0D1117" />
+          <rect width="200" height="11" fill="#161B22" />
+          <circle cx="10" cy="5.5" r="2" fill="#FFD700" />
+          <circle cx="18" cy="5.5" r="2" fill="#8B949E" />
+          <rect x="8" y="15" width="44" height="3" rx="1" fill="#8B949E" opacity="0.45" />
+          <rect x="12" y="50" width="14" height="20" rx="1" fill="#8B949E" />
+          <rect x="30" y="38" width="14" height="32" rx="1" fill="#FFD700" />
+          <rect x="48" y="44" width="14" height="26" rx="1" fill="#8B949E" opacity="0.65" />
+          <rect x="66" y="28" width="14" height="42" rx="1" fill="#8B949E" opacity="0.85" />
+          <rect x="84" y="42" width="14" height="28" rx="1" fill="#FFD700" opacity="0.5" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#21262D" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#21262D" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#8B949E" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#FFD700" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+          <rect x="145" y="9" width="40" height="3" rx="1" fill="#8B949E" opacity="0.3" />
+        </svg>
+      );
+
+    case "nature":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#F0F7EE" />
+          <rect width="200" height="11" fill="#2D6A4F" />
+          <rect x="8" y="14" width="50" height="4" rx="1" fill="#F0F7EE" opacity="0.55" />
+          <rect x="8" y="21" width="34" height="3" rx="1" fill="#2D6A4F" opacity="0.3" />
+          <rect x="12" y="50" width="14" height="20" rx="1" fill="#52B788" />
+          <rect x="30" y="38" width="14" height="32" rx="1" fill="#2D6A4F" />
+          <rect x="48" y="44" width="14" height="26" rx="1" fill="#74C69D" />
+          <rect x="66" y="28" width="14" height="42" rx="1" fill="#52B788" opacity="0.85" />
+          <rect x="84" y="42" width="14" height="28" rx="1" fill="#2D6A4F" opacity="0.65" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#B7E4C7" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#B7E4C7" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#52B788" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#2D6A4F" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+        </svg>
+      );
+
+    case "bold-black":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#000000" />
+          <rect x="8" y="14" width="50" height="4" rx="1" fill="white" opacity="0.75" />
+          <rect x="8" y="21" width="32" height="3" rx="1" fill="#00E5FF" opacity="0.5" />
+          <rect x="12" y="50" width="14" height="20" rx="1" fill="white" opacity="0.55" />
+          <rect x="30" y="38" width="14" height="32" rx="1" fill="#00E5FF" />
+          <rect x="48" y="44" width="14" height="26" rx="1" fill="white" opacity="0.4" />
+          <rect x="66" y="28" width="14" height="42" rx="1" fill="white" opacity="0.7" />
+          <rect x="84" y="42" width="14" height="28" rx="1" fill="white" opacity="0.35" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#222222" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#222222" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="white" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#00E5FF" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+        </svg>
+      );
+
+    case "pastel":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#FAFAFE" />
+          <rect width="200" height="11" fill="#8B5CF6" opacity="0.75" />
+          <circle cx="10" cy="5.5" r="2.5" fill="white" opacity="0.7" />
+          <rect x="8" y="15" width="44" height="3" rx="1" fill="#8B5CF6" opacity="0.3" />
+          <rect x="12" y="50" width="14" height="20" rx="1" fill="#93C5FD" />
+          <rect x="30" y="38" width="14" height="32" rx="1" fill="#C4B5FD" />
+          <rect x="48" y="44" width="14" height="26" rx="1" fill="#6EE7B7" />
+          <rect x="66" y="28" width="14" height="42" rx="1" fill="#93C5FD" opacity="0.8" />
+          <rect x="84" y="42" width="14" height="28" rx="1" fill="#C4B5FD" opacity="0.65" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#E0E7FF" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#E0E7FF" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#93C5FD" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#C4B5FD" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#6EE7B7" strokeWidth="9" strokeDasharray="14 100" strokeDashoffset="-48" />
+        </svg>
+      );
+
+    case "rose-coral":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#FFF5F7" />
+          <rect width="200" height="11" fill="#E11D48" />
+          <rect x="8" y="14" width="50" height="4" rx="1" fill="#1C1917" opacity="0.35" />
+          <rect x="8" y="21" width="34" height="3" rx="1" fill="#E11D48" opacity="0.3" />
+          <rect x="12" y="50" width="14" height="20" rx="1" fill="#F9A8D4" />
+          <rect x="30" y="38" width="14" height="32" rx="1" fill="#E11D48" />
+          <rect x="48" y="44" width="14" height="26" rx="1" fill="#FF6B6B" />
+          <rect x="66" y="28" width="14" height="42" rx="1" fill="#F9A8D4" opacity="0.8" />
+          <rect x="84" y="42" width="14" height="28" rx="1" fill="#E11D48" opacity="0.6" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#FECDD3" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#FECDD3" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#F9A8D4" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#E11D48" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+          <rect x="145" y="9" width="40" height="3" rx="1" fill="#FECDD3" opacity="0.5" />
+        </svg>
+      );
+
+    case "mono-grid":
+      return (
+        <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <rect width="200" height="80" fill="#FFFFFF" />
+          <line x1="0" y1="20" x2="200" y2="20" stroke="#F3F4F6" strokeWidth="0.75" />
+          <line x1="0" y1="40" x2="200" y2="40" stroke="#F3F4F6" strokeWidth="0.75" />
+          <line x1="0" y1="60" x2="200" y2="60" stroke="#F3F4F6" strokeWidth="0.75" />
+          <line x1="50" y1="0" x2="50" y2="80" stroke="#F3F4F6" strokeWidth="0.75" />
+          <line x1="100" y1="0" x2="100" y2="80" stroke="#F3F4F6" strokeWidth="0.75" />
+          <line x1="150" y1="0" x2="150" y2="80" stroke="#F3F4F6" strokeWidth="0.75" />
+          <rect x="8" y="10" width="30" height="2.5" rx="0" fill="#EF4444" />
+          <rect x="8" y="16" width="46" height="4" rx="0" fill="#111827" opacity="0.7" />
+          <rect x="12" y="50" width="14" height="20" fill="none" stroke="#111827" strokeWidth="1.5" />
+          <rect x="30" y="38" width="14" height="32" fill="#111827" />
+          <rect x="48" y="44" width="14" height="26" fill="none" stroke="#111827" strokeWidth="1.5" />
+          <rect x="66" y="28" width="14" height="42" fill="#111827" opacity="0.75" />
+          <rect x="84" y="40" width="14" height="30" fill="none" stroke="#6B7280" strokeWidth="1.5" />
+          <line x1="8" y1="72" x2="106" y2="72" stroke="#111827" strokeWidth="1" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#F3F4F6" strokeWidth="9" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#111827" strokeWidth="9" strokeDasharray="42 72" strokeDashoffset="18" />
+          <circle cx="158" cy="48" r="18" fill="none" stroke="#6B7280" strokeWidth="9" strokeDasharray="24 90" strokeDashoffset="-24" />
+        </svg>
+      );
   }
 }
 
@@ -247,6 +369,78 @@ function LayoutIcon({ layout }: { layout: InfographicLayout }) {
           <rect x="13" y="21" width="13" height="2" rx="1" opacity="0.25" />
           <rect x="13" y="26" width="20" height="3" rx="1" opacity="0.35" />
           <rect x="13" y="31" width="14" height="2" rx="1" opacity="0.18" />
+        </svg>
+      );
+    case "ranked-list":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <rect x="2" y="5" width="5" height="5" rx="1" opacity="0.8" />
+          <rect x="9" y="6" width="25" height="3" rx="1" opacity="0.7" />
+          <rect x="9" y="10" width="18" height="2" rx="1" opacity="0.3" />
+          <rect x="2" y="15" width="5" height="5" rx="1" opacity="0.6" />
+          <rect x="9" y="16" width="21" height="3" rx="1" opacity="0.55" />
+          <rect x="9" y="20" width="14" height="2" rx="1" opacity="0.25" />
+          <rect x="2" y="25" width="5" height="5" rx="1" opacity="0.4" />
+          <rect x="9" y="26" width="16" height="3" rx="1" opacity="0.4" />
+          <rect x="9" y="30" width="10" height="2" rx="1" opacity="0.2" />
+        </svg>
+      );
+    case "magazine-cover":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <rect x="2" y="2" width="32" height="32" rx="2" opacity="0.12" />
+          <rect x="2" y="2" width="32" height="7" rx="2" opacity="0.7" />
+          <rect x="4" y="3.5" width="16" height="4" rx="1" opacity="0.9" />
+          <rect x="4" y="12" width="28" height="5" rx="1" opacity="0.6" />
+          <rect x="4" y="19" width="20" height="3" rx="1" opacity="0.4" />
+          <rect x="4" y="24" width="14" height="2" rx="1" opacity="0.25" />
+          <rect x="4" y="28" width="18" height="2" rx="1" opacity="0.2" />
+        </svg>
+      );
+    case "flowchart":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <rect x="10" y="2" width="16" height="7" rx="2" opacity="0.7" />
+          <rect x="16" y="9" width="4" height="4" rx="0.5" opacity="0.4" />
+          <polygon points="18,13 14,17 22,17" opacity="0.5" />
+          <rect x="2" y="17" width="13" height="7" rx="2" opacity="0.55" />
+          <rect x="21" y="17" width="13" height="7" rx="2" opacity="0.55" />
+          <rect x="8" y="24" width="1.5" height="5" rx="0.5" opacity="0.35" />
+          <rect x="27" y="24" width="1.5" height="5" rx="0.5" opacity="0.35" />
+          <rect x="5" y="29" width="7" height="5" rx="1.5" opacity="0.45" />
+          <rect x="24" y="29" width="7" height="5" rx="1.5" opacity="0.45" />
+        </svg>
+      );
+    case "bubble-chart":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <circle cx="18" cy="16" r="9" opacity="0.65" />
+          <circle cx="7" cy="27" r="5" opacity="0.45" />
+          <circle cx="30" cy="26" r="4" opacity="0.4" />
+          <circle cx="28" cy="8" r="3" opacity="0.35" />
+          <circle cx="7" cy="10" r="2.5" opacity="0.3" />
+        </svg>
+      );
+    case "pull-quote":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <text x="2" y="16" fontSize="20" opacity="0.6" fontFamily="serif">&ldquo;</text>
+          <rect x="2" y="17" width="32" height="5" rx="1" opacity="0.7" />
+          <rect x="5" y="24" width="26" height="3" rx="1" opacity="0.4" />
+          <rect x="2" y="29" width="14" height="2" rx="1" opacity="0.25" />
+          <rect x="18" y="29" width="8" height="2" rx="1" opacity="0.2" />
+        </svg>
+      );
+    case "two-panel":
+      return (
+        <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="currentColor">
+          <rect x="2" y="2" width="15" height="32" rx="2" opacity="0.45" />
+          <rect x="19" y="2" width="15" height="6" rx="1" opacity="0.7" />
+          <rect x="19" y="11" width="15" height="3" rx="1" opacity="0.5" />
+          <rect x="19" y="16" width="12" height="2" rx="1" opacity="0.35" />
+          <rect x="19" y="20" width="15" height="3" rx="1" opacity="0.45" />
+          <rect x="19" y="25" width="10" height="2" rx="1" opacity="0.3" />
+          <rect x="19" y="29" width="13" height="2" rx="1" opacity="0.25" />
         </svg>
       );
   }
