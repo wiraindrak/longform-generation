@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import clsx from "clsx";
 import type {
   MediaBrand,
@@ -464,7 +464,22 @@ function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
-function ImageCard({ image }: { image: GeneratedImage }) {
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+function Lightbox({
+  images,
+  initialIndex,
+  onClose,
+}: {
+  images: GeneratedImage[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [idx, setIdx] = useState(initialIndex);
+  const image = images[idx];
+  const hasPrev = idx > 0;
+  const hasNext = idx < images.length - 1;
+
   const handleDownload = useCallback(() => {
     const link = document.createElement("a");
     link.href = `data:image/png;base64,${image.base64}`;
@@ -474,42 +489,192 @@ function ImageCard({ image }: { image: GeneratedImage }) {
     document.body.removeChild(link);
   }, [image]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && hasPrev) setIdx((i) => i - 1);
+      if (e.key === "ArrowRight" && hasNext) setIdx((i) => i + 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, hasPrev, hasNext]);
+
+  // Prevent body scroll while open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   return (
-    <div className="group rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-      <div className="relative image-wrapper">
+    <div
+      className="fixed inset-0 z-50 bg-black/92 flex flex-col items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Top bar */}
+      <div
+        className="w-full max-w-5xl flex items-center justify-between mb-3 px-1 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {images.length > 1 && (
+            <span className="text-white/40 text-xs font-mono shrink-0">
+              {idx + 1} / {images.length}
+            </span>
+          )}
+          <p className="text-white/70 text-sm truncate">{image.sectionHeadline}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-4">
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 1.5V8.5M6.5 8.5L4 6M6.5 8.5L9 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M1.5 11H11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            Download PNG
+          </button>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+            aria-label="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Image + prev/next */}
+      <div
+        className="relative flex items-center justify-center w-full max-w-5xl min-h-0 flex-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {hasPrev && (
+          <button
+            onClick={() => setIdx((i) => i - 1)}
+            className="absolute left-0 z-10 w-10 h-10 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors -translate-x-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={image.index}
+          src={`data:image/png;base64,${image.base64}`}
+          alt={image.sectionHeadline}
+          className="max-w-full max-h-[80vh] w-auto h-auto object-contain rounded-xl shadow-2xl"
+        />
+
+        {hasNext && (
+          <button
+            onClick={() => setIdx((i) => i + 1)}
+            className="absolute right-0 z-10 w-10 h-10 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors translate-x-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Dot indicators for multi-slide */}
+      {images.length > 1 && (
+        <div
+          className="flex items-center gap-2 mt-4 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={clsx(
+                "w-1.5 h-1.5 rounded-full transition-all",
+                i === idx ? "bg-white scale-125" : "bg-white/30 hover:bg-white/60"
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Image Card ───────────────────────────────────────────────────────────────
+
+function ImageCard({
+  image,
+  onExpand,
+}: {
+  image: GeneratedImage;
+  onExpand: () => void;
+}) {
+  const handleDownload = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const link = document.createElement("a");
+      link.href = `data:image/png;base64,${image.base64}`;
+      link.download = image.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [image]
+  );
+
+  return (
+    <div className="group rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+      {/* Image — click to expand */}
+      <div
+        className="relative cursor-zoom-in"
+        onClick={onExpand}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`data:image/png;base64,${image.base64}`}
           alt={image.sectionHeadline}
           className="w-full h-auto block"
         />
-        <div className="image-hover-overlay absolute inset-0 bg-black/40 flex items-center justify-center">
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-between p-3 opacity-0 group-hover:opacity-100">
+          <span className="flex items-center gap-1.5 bg-black/60 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg backdrop-blur-sm">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M1 5V1H5M8 1H12V5M12 8V12H8M5 12H1V8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            View full
+          </span>
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-md"
+            className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 13H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 1.5V8.5M6.5 8.5L4 6M6.5 8.5L9 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M1.5 11H11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
-            Download PNG
+            PNG
           </button>
         </div>
       </div>
-      <div className="p-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400 mb-1">
-          Slide {image.index + 1} · {image.filename}
-        </p>
-        <p className="text-sm font-medium text-gray-900 leading-snug">{image.sectionHeadline}</p>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-400 truncate">Slide {image.index + 1} · {image.filename}</p>
+          <p className="text-sm font-medium text-gray-900 leading-snug mt-0.5 line-clamp-1">{image.sectionHeadline}</p>
+        </div>
         <button
           onClick={handleDownload}
-          className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg py-2.5 hover:border-gray-400 hover:text-gray-900 transition-all"
+          className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-2 hover:border-gray-400 hover:text-gray-900 transition-all"
         >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M6.5 1.5V8.5M6.5 8.5L4 6M6.5 8.5L9 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M1.5 11H11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 1v6M6 7L4 5M6 7L8 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M1 10h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
-          Download PNG
+          Download
         </button>
       </div>
     </div>
@@ -520,10 +685,12 @@ function ImageSkeleton() {
   return (
     <div className="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
       <div className="shimmer aspect-[9/16] w-full" />
-      <div className="p-4 space-y-2">
-        <div className="shimmer h-3 w-20 rounded" />
-        <div className="shimmer h-4 w-3/4 rounded" />
-        <div className="shimmer h-8 w-full rounded-lg mt-3" />
+      <div className="px-4 py-3 flex items-center justify-between gap-3">
+        <div className="space-y-1.5 flex-1">
+          <div className="shimmer h-3 w-24 rounded" />
+          <div className="shimmer h-4 w-3/4 rounded" />
+        </div>
+        <div className="shimmer h-8 w-20 rounded-lg shrink-0" />
       </div>
     </div>
   );
@@ -542,6 +709,7 @@ export default function Home() {
   const [status, setStatus] = useState<GenerationStatus>({ phase: "idle" });
   const [archiveSave, setArchiveSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const isGenerating = status.phase === "generating";
   const isReady = topic.trim().length > 5 && brandTarget.trim().length > 1 && !isGenerating;
@@ -687,6 +855,7 @@ export default function Home() {
     setStatus({ phase: "idle" });
     setArchiveSave("idle");
     setArchiveId(null);
+    setLightboxIndex(null);
   };
 
   const pendingImageSlots =
@@ -1004,16 +1173,22 @@ export default function Home() {
                   </p>
                   {status.phase === "done" && (
                     <p className="text-xs text-gray-400">
-                      {activeImages.length} {activeImages.length === 1 ? "slide" : "slides"} ready
+                      {activeImages.length} {activeImages.length === 1 ? "slide" : "slides"} ready · click to expand
                     </p>
                   )}
                 </div>
                 <div className={clsx(
-                  "grid gap-4",
-                  slideCount >= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 max-w-sm"
+                  "grid gap-5",
+                  slideCount >= 3
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "grid-cols-1 max-w-lg"
                 )}>
                   {activeImages.map((img) => (
-                    <ImageCard key={img.index} image={img} />
+                    <ImageCard
+                      key={img.index}
+                      image={img}
+                      onExpand={() => setLightboxIndex(img.index)}
+                    />
                   ))}
                   {Array.from({ length: pendingImageSlots }).map((_, i) => (
                     <ImageSkeleton key={`sk-${i}`} />
@@ -1033,6 +1208,15 @@ export default function Home() {
           <span className="text-gray-600">OpenAI GPT Image</span> via OpenRouter
         </p>
       </footer>
+
+      {/* ── Lightbox ────────────────────────────────────────────────────────── */}
+      {lightboxIndex !== null && activeImages.length > 0 && (
+        <Lightbox
+          images={activeImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }
