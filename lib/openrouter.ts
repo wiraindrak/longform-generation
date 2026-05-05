@@ -28,7 +28,7 @@ export async function generateStoryWithKimi(
         { role: "user", content: userPrompt },
       ],
       temperature: 0.85,
-      max_tokens: 6000,
+      max_tokens: 12000,
       response_format: { type: "json_object" },
     }),
   });

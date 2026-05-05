@@ -66,7 +66,17 @@ export async function POST(req: NextRequest) {
 
         let story: GeneratedStory;
         try {
-          story = JSON.parse(storyRaw);
+          // Strip markdown code fences and extract the outermost {} object —
+          // guards against models that wrap JSON in ```json...``` or add preamble text
+          const jsonText = (() => {
+            const fenced = storyRaw.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (fenced) return fenced[1].trim();
+            const start = storyRaw.indexOf("{");
+            const end = storyRaw.lastIndexOf("}");
+            if (start !== -1 && end > start) return storyRaw.slice(start, end + 1);
+            return storyRaw.trim();
+          })();
+          story = JSON.parse(jsonText);
         } catch {
           throw new Error("Story model returned malformed JSON. Please try again.");
         }
