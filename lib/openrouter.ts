@@ -50,18 +50,10 @@ export async function generateStoryWithKimi(
 export async function generateImageWithGPT(
   prompt: string,
   size: string,
-  _ratio: string
+  ratio: string
 ): Promise<string> {
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), 240_000); // 4-minute hard limit
-
-  // Map apiSize → FLUX aspect_ratio and width/height
-  const sizeConfig: Record<string, { aspect_ratio: string; width: number; height: number }> = {
-    "1024x1024": { aspect_ratio: "1:1",  width: 1024, height: 1024 },
-    "1024x1792": { aspect_ratio: "9:16", width: 1024, height: 1792 },
-    "1792x1024": { aspect_ratio: "16:9", width: 1792, height: 1024 },
-  };
-  const cfg = sizeConfig[size] ?? sizeConfig["1024x1024"];
 
   let res: Response;
   try {
@@ -70,12 +62,14 @@ export async function generateImageWithGPT(
       headers: getHeaders(),
       signal: abort.signal,
       body: JSON.stringify({
-        model: "black-forest-labs/flux-pro-1.1",
+        model: "openai/gpt-5.4-image-2",
         messages: [{ role: "user", content: prompt }],
-        // FLUX image-size params passed at top level (OpenRouter forwards them)
-        width: cfg.width,
-        height: cfg.height,
-        aspect_ratio: cfg.aspect_ratio,
+        modalities: ["image", "text"],
+        image_config: {
+          aspect_ratio: ratio,
+          image_size: size,
+          quality: "high",
+        },
       }),
     });
   } catch (e) {
@@ -89,7 +83,7 @@ export async function generateImageWithGPT(
 
   if (!res.ok) {
     const errText = await res.text();
-    const preview = errText.startsWith("<!") ? "(HTML error page — endpoint or model not accessible)" : errText.slice(0, 400);
+    const preview = errText.startsWith("<!") ? "(HTML error page — wrong endpoint)" : errText.slice(0, 400);
     throw new Error(`Image generation failed (${res.status}): ${preview}`);
   }
 
@@ -100,27 +94,38 @@ export async function generateImageWithGPT(
   }
   const data = JSON.parse(raw);
 
-  const message = data.choices?.[0]?.message;
-  if (!message) {
-    throw new Error(`No message in image response. Top-level keys: ${Object.keys(data).join(", ")}`);
+  // ── Try every known response shape ───────────────────────────────────────
+
+  // Shape 1: choices[0].message.images[0].image_url.url  (OpenRouter native)
+  const imgUrl1 = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  if (imgUrl1) return await urlOrDataToBase64(imgUrl1);
+
+  // Shape 2: choices[0].message.content[] image_url block
+  const content = data.choices?.[0]?.message?.content;
+  if (Array.isArray(content)) {
+    const block = content.find((c: { type: string }) => c.type === "image_url");
+    if (block?.image_url?.url) return await urlOrDataToBase64(block.image_url.url);
   }
 
-  // FLUX via OpenRouter returns image as an image_url block in content array
-  if (Array.isArray(message.content)) {
-    const block = message.content.find((c: { type: string }) => c.type === "image_url");
-    if (block?.image_url?.url) {
-      return await urlOrDataToBase64(block.image_url.url);
-    }
-  }
-
-  // Some models return content as a string (URL or data URL)
-  if (typeof message.content === "string") {
-    const c = message.content.trim();
+  // Shape 3: choices[0].message.content as string (URL or data URL)
+  if (typeof content === "string") {
+    const c = content.trim();
     if (c.startsWith("data:")) return c.split(",")[1] ?? c;
     if (c.startsWith("http")) return await urlOrDataToBase64(c);
   }
 
-  throw new Error(`Image response contained no image data. Message keys: ${Object.keys(message).join(", ")}`);
+  // Shape 4: top-level data[].b64_json  (OpenAI images endpoint compat)
+  const b64 = data.data?.[0]?.b64_json;
+  if (b64) return b64;
+
+  // Shape 5: top-level data[].url
+  const urlFallback: string | undefined = data.data?.[0]?.url;
+  if (urlFallback) return await urlOrDataToBase64(urlFallback);
+
+  // Nothing matched — dump structure for debugging
+  const topKeys = Object.keys(data).join(", ");
+  const msgKeys = data.choices?.[0]?.message ? Object.keys(data.choices[0].message).join(", ") : "no message";
+  throw new Error(`Image response has no image data. top=${topKeys} | msg=${msgKeys} | raw=${raw.slice(0, 300)}`);
 }
 
 async function urlOrDataToBase64(urlOrData: string): Promise<string> {
