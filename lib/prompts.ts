@@ -213,23 +213,15 @@ Respond with ONLY this JSON (no extra text, no markdown):
 }`;
 }
 
-function sanitizeImagePrompt(text: string): string {
-  return text
-    // English — accident / injury vocabulary
-    .replace(/\b(crash(?:es)?|collision(?:s)?|accident(?:s)?|wreck(?:s)?|derail(?:ment|ed|ing)?)\b/gi, "incident")
-    .replace(/\b(victim(?:s)?|fatali(?:ty|ties)|casualt(?:y|ies)|injur(?:y|ies|ed|ing)|wound(?:s|ed)?|death(?:s)?|dead|kill(?:ed|ing)?|deceas(?:ed)?)\b/gi, "affected data point")
-    .replace(/\b(disaster(?:s)?|tragedy|tragedies|catastrophe(?:s)?|carnage)\b/gi, "event")
-    .replace(/\b(blaze|fire|explosion|blast)\b/gi, "incident")
-    // Indonesian — accident / injury vocabulary
-    .replace(/\bkecelakaan\b/gi, "insiden")
-    .replace(/\btabrakan\b/gi, "peristiwa")
-    .replace(/\b(korban|tewas|meninggal(?:al)?|luka(?:-luka)?|cedera|wafat)\b/gi, "data terdampak")
-    .replace(/\b(bencana|tragedi|malapetaka)\b/gi, "peristiwa")
-    .replace(/\b(menghantam|menabrak|menghancurkan)\b/gi, "berinteraksi dengan");
+/** Extract only numbers, percentages, and ordinals — no narrative context. */
+function extractDataPoints(text: string): string {
+  const matches = text.match(/[\d.,]+\s*%|[\d.,]+\s*(ribu|juta|miliar|triliun|km|meter|km\/h|orang|unit|tahun|ton|MW|GW|kg|liter|barrel|USD|IDR|rupiah|billion|million|thousand|km²)?|\b(pertama|kedua|ketiga|ke-\d+|#\d+|no\.\s*\d+)\b/gi);
+  if (!matches || matches.length === 0) return "";
+  return matches.slice(0, 8).join(" • ");
 }
 
 export function buildImagePrompt(
-  imagePromptFromStory: string,
+  section: { headline: string; body: string },
   req: GenerationRequest,
   sectionIndex: number
 ): string {
@@ -241,9 +233,10 @@ export function buildImagePrompt(
       ? "single infographic"
       : `slide ${sectionIndex + 1} of ${req.slideCount}`;
 
-  const safePrompt = sanitizeImagePrompt(imagePromptFromStory);
+  const dataPoints = extractDataPoints(section.body);
+  const dataLine = dataPoints ? `DATA VALUES TO VISUALIZE: ${dataPoints}` : "";
 
-  return `TASK: Generate a professional infographic image.
+  return `TASK: Generate a professional news-data infographic image.
 
 ${themeGuide}
 
@@ -251,19 +244,18 @@ ${layoutGuide}
 
 ${brandGuide}
 
-CONTENT DIRECTION (${slideLabel}):
-${safePrompt}
+SLIDE: ${slideLabel}
+${dataLine}
 
 TECHNICAL REQUIREMENTS:
-- This is an INFOGRAPHIC — structured data visualization, NOT a photograph or illustration
-- Apply the specified color theme consistently to ALL elements: backgrounds, bars, text zones, dividers
-- Apply the specified layout type as the structural skeleton of the entire composition
-- Include realistic data visualization elements: charts with visible data, numbers, icons, callout boxes
-- No photographic elements — pure graphic/typographic infographic design
-- The brand partner "${req.brandTarget}" integrated naturally (data source attribution, featured brand callout, or contextual reference)
-- Aspect ratio: ${req.ratio} — the infographic layout must be fully optimized for this format
-- Full-bleed composition — no borders, frames, or watermarks
-- Professional publication quality suitable for ${req.mediaBrand}
+- Pure INFOGRAPHIC — structured data visualization only, NO photographs, NO scenes, NO people
+- Apply the color theme to ALL elements: backgrounds, chart bars, text zones, dividers, icons
+- Use the layout type as the structural skeleton of the full composition
+- Populate charts, graphs, and callout boxes with realistic-looking numbers and statistics
+- Typography hierarchy: large headline zone at top, data body zone in middle, source/brand zone at bottom
+- Brand attribution "${req.brandTarget}" as a data source label or contextual callout
+- Aspect ratio ${req.ratio} — composition must fill the frame completely with no dead space
+- Full-bleed, no borders, no watermarks, professional editorial publication quality
 
 Generate a single stunning infographic that perfectly executes all of the above.`;
 }

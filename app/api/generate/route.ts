@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
           let base64: string;
           try {
-            base64 = await generateImageWithGPT(buildImagePrompt(section.imagePrompt, body, i), apiSize, ratio);
+            base64 = await generateImageWithGPT(buildImagePrompt(section, body, i), apiSize, ratio);
           } catch (e) {
             throw new Error(`Slide ${i + 1} generation failed: ${(e as Error).message}`);
           }
