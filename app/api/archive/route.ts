@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         brandTarget,
         ratio,
         layout ?? "data-chart",
-        colorTheme ?? "corporate",
+        colorTheme ?? "broadsheet",
         story.mainHeadline ?? null,
         story.language ?? null,
         JSON.stringify(story.sections ?? []),

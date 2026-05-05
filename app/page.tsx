@@ -35,7 +35,7 @@ type GenerationStatus =
 
 function ThemePreview({ theme }: { theme: InfographicTheme }) {
   switch (theme) {
-    case "corporate":
+    case "broadsheet":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#F8FAFC" />
@@ -55,7 +55,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "dark-neon":
+    case "neo-tokyo":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#0F0F1A" />
@@ -78,10 +78,10 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "warm-bold":
+    case "jakarta-heat":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          <rect width="200" height="80" fill="#FFF7ED" />
+          <rect width="200" height="80" fill="#1C1917" />
           <rect width="200" height="11" fill="#F97316" />
           <rect x="8" y="14" width="50" height="4" rx="1" fill="#1C1917" opacity="0.5" />
           <rect x="8" y="21" width="34" height="3" rx="1" fill="#F97316" opacity="0.45" />
@@ -98,7 +98,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "clean-white":
+    case "white-cube":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#FFFFFF" />
@@ -117,7 +117,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "vivid-pop":
+    case "pop-idol":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#FFFFFF" />
@@ -140,7 +140,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "editorial":
+    case "monocle-editorial":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#F5F0E8" />
@@ -160,7 +160,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "midnight":
+    case "the-vault":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#0D1117" />
@@ -181,7 +181,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "nature":
+    case "forest-sky":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#F0F7EE" />
@@ -200,7 +200,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "bold-black":
+    case "high-contrast":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#000000" />
@@ -218,7 +218,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "pastel":
+    case "sunday-brunch":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#FAFAFE" />
@@ -238,7 +238,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "rose-coral":
+    case "the-heartthrob":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#FFF5F7" />
@@ -258,7 +258,7 @@ function ThemePreview({ theme }: { theme: InfographicTheme }) {
         </svg>
       );
 
-    case "mono-grid":
+    case "the-dossier":
       return (
         <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <rect width="200" height="80" fill="#FFFFFF" />
@@ -581,19 +581,26 @@ function ThemeCard({
         <ThemePreview theme={theme} />
       </div>
       <div className="p-2.5 bg-white">
-        <div className="flex items-center gap-1 mb-1">
-          {info.colors.map((c) => (
+        <div className="flex items-center gap-1 mb-1.5">
+          {info.paletteHex.slice(0, 4).map((c) => (
             <span
               key={c}
-              className="w-2.5 h-2.5 rounded-full border border-white/50 shadow-sm"
+              className="w-2.5 h-2.5 rounded-full border border-white/50 shadow-sm flex-shrink-0"
               style={{ backgroundColor: c }}
             />
           ))}
         </div>
-        <p className="text-[11px] font-semibold text-gray-900">{info.label}</p>
-        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight line-clamp-2">
-          {info.description}
+        <p className="text-[11px] font-semibold text-gray-900 leading-tight">{info.displayName}</p>
+        <p className="text-[10px] text-gray-500 mt-0.5 leading-snug line-clamp-2 italic">
+          {info.positioning}
         </p>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {info.brandFitExamples.slice(0, 2).map((ex) => (
+            <span key={ex} className="text-[9px] bg-gray-100 text-gray-500 rounded px-1 py-0.5 leading-none">
+              {ex}
+            </span>
+          ))}
+        </div>
       </div>
       {selected && (
         <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-900 flex items-center justify-center">
@@ -899,7 +906,7 @@ export default function Home() {
   const [brandTarget, setBrandTarget] = useState("");
   const [ratio, setRatio] = useState<ImageRatio>("9:16");
   const [slideCount, setSlideCount] = useState<SlideCount>(1);
-  const [colorTheme, setColorTheme] = useState<InfographicTheme>("corporate");
+  const [colorTheme, setColorTheme] = useState<InfographicTheme>("broadsheet");
   const [layout, setLayout] = useState<InfographicLayout>("data-chart");
   const [status, setStatus] = useState<GenerationStatus>({ phase: "idle" });
   const [archiveSave, setArchiveSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -1235,7 +1242,7 @@ export default function Home() {
               </div>
               <div className="flex justify-between">
                 <span>Theme</span>
-                <span className="text-gray-700 font-medium">{THEME_INFO[colorTheme].label}</span>
+                <span className="text-gray-700 font-medium">{THEME_INFO[colorTheme].displayName}</span>
               </div>
               <div className="flex justify-between">
                 <span>Output</span>

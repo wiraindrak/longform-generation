@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
 
           let base64: string;
           try {
-            base64 = await generateImageWithGPT(buildImagePrompt(section, body, i), apiSize, ratio);
+            base64 = await generateImageWithGPT(buildImagePrompt(section, body, i, story.visualDNA), apiSize, ratio);
           } catch (e) {
             const slideMsg = (e as Error).message;
             console.error(`[slide-error] slide ${i + 1}:`, slideMsg);
