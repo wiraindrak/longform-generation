@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
         }, 10_000);
 
+        let anyImageSucceeded = false;
         try {
         for (let i = 0; i < sectionCount; i++) {
           const section = story.sections[i];
@@ -117,7 +118,11 @@ export async function POST(req: NextRequest) {
           try {
             base64 = await generateImageWithGPT(buildImagePrompt(section, body, i), apiSize, ratio);
           } catch (e) {
-            throw new Error(`Slide ${i + 1} generation failed: ${(e as Error).message}`);
+            const slideMsg = (e as Error).message;
+            console.error(`[slide-error] slide ${i + 1}:`, slideMsg);
+            send({ type: "slide_error", index: i, message: slideMsg });
+            stepsDone++;
+            continue;
           }
 
           const generatedImage: GeneratedImage = {
@@ -128,10 +133,15 @@ export async function POST(req: NextRequest) {
           };
 
           send({ type: "image_done", image: generatedImage });
+          anyImageSucceeded = true;
           stepsDone++;
         }
         } finally {
           clearInterval(keepAlive);
+        }
+
+        if (!anyImageSucceeded && sectionCount > 0) {
+          throw new Error("All slides failed to generate. Check your topic or brand name and try again.");
         }
 
         send({ type: "progress", step: "finalizing", message: "Done!", percent: 100 });

@@ -64,6 +64,7 @@ export type ProgressEvent =
   | { type: "progress"; step: string; message: string; percent: number }
   | { type: "story_done"; story: GeneratedStory }
   | { type: "image_done"; image: GeneratedImage }
+  | { type: "slide_error"; index: number; message: string }
   | { type: "done" }
   | { type: "error"; message: string };
 

@@ -77,18 +77,27 @@ async function callImageAPI(prompt: string, ratio: string): Promise<Response> {
   return res;
 }
 
-/** Strips everything except the structural design spec — used as safety retry. */
+/** Strips brand/topic context for safety retry — keeps only hex colors + layout structure. */
 function stripToDesignOnly(prompt: string): string {
-  // Keep only lines that start with known safe structural markers
+  let inBlockToSkip = false;
   return prompt
     .split("\n")
     .filter(line => {
       const t = line.trim();
-      // Drop lines that contain brand/partner names (the main leakage vector)
+      // Block-level markers: skip everything until the next blank line or structural section
+      if (/^PUBLICATION STYLE:/i.test(t)) { inBlockToSkip = true; return false; }
+      if (/^DATA SOURCE:/i.test(t)) return false;
       if (/^BRAND PARTNER:/i.test(t)) return false;
       if (/^DATA VALUES/i.test(t)) return false;
       if (/^SLIDE:/i.test(t)) return false;
       if (/^SERIES CONSISTENCY/i.test(t)) return false;
+      // End skip-block on blank line or a known safe section header
+      if (inBlockToSkip) {
+        if (t === "" || /^(TASK:|CANVAS:|COLOR THEME|LAYOUT TYPE|TECHNICAL REQUIREMENTS)/i.test(t)) {
+          inBlockToSkip = false;
+        }
+        return false;
+      }
       return true;
     })
     .join("\n")

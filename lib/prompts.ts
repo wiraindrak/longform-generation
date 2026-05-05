@@ -196,6 +196,7 @@ Visual hierarchy: Primary panel hero element → Divider → Secondary panel hea
 Specific elements: Both panels use same color theme but different visual treatments. A shared accent color connects the panels.`,
 };
 
+// Used only in story prompt (sent to Kimi, not to image model)
 const BRAND_EDITORIAL_GUIDE: Record<MediaBrand, string> = {
   detikcom: `MEDIA BRAND — DETIKCOM:
 Brand identity: Indonesia's #1 mass-market digital news brand. Bold, fast, tabloid urgency.
@@ -214,6 +215,26 @@ Brand identity: Business and finance focused, data-driven, executive audience.
 Brand colors: Navy #003087 (header bar, primary frame elements), Gold #FFB800 (key statistics accent, most important data callout).
 Integration: Navy #003087 header bar or frame element. Gold #FFB800 on the key financial statistic or most important number. Financial data visualization aesthetic — charts feel like Bloomberg or Reuters graphics.
 Typography mood: Precise, data-dense, executive-level. Clean sans-serif at multiple density levels.`,
+};
+
+// Brand-name-free style guide used in image prompts — hex colors and layout rules only,
+// no real organization names that could trigger brand-impersonation content filters.
+const BRAND_IMAGE_STYLE: Record<MediaBrand, string> = {
+  detikcom: `PUBLICATION STYLE:
+Header strip: Wide solid #E00000 strip at top (18-20% of canvas height). Red #E00000 used liberally across the design — callout boxes, stat highlights, bar tops, key number backgrounds. NOT reserved sparingly.
+Surface: White background panels between red elements. High visual density and urgency.
+Typography: Bold condensed weight — the composition must feel impactful and immediate. Numbers at aggressive scale.`,
+
+  "cnn-indonesia": `PUBLICATION STYLE:
+Header strip: Slim #CC0000 strip at top edge only (10% height — narrow, not thick). Red appears ONLY on this header strip.
+Data zones: Dark charcoal #1A1A1A panels behind all data areas. All data text in white on dark panels (broadcast news lower-third aesthetic). No red anywhere except the slim header.
+Typography: Clean authoritative sans-serif. Measured and credible — NOT tabloid. Calm, precise layout.`,
+
+  "cnbc-indonesia": `PUBLICATION STYLE:
+Header strip: Navy #003087 header bar or full-width top frame element.
+Key accent: Gold #FFB800 applied to exactly ONE primary financial metric — the most important number only.
+Surface: Dense financial data layout — chart-heavy, Bloomberg/Reuters-style precision. Executive-audience data density.
+Typography: Precise clean sans-serif at multiple size levels. Data-dense composition.`,
 };
 
 export function buildStorySystemPrompt(): string {
@@ -338,7 +359,7 @@ export function buildImagePrompt(
 ): string {
   const themeGuide = THEME_VISUAL_GUIDE[req.colorTheme];
   const layoutGuide = LAYOUT_VISUAL_GUIDE[req.layout];
-  const brandGuide = BRAND_EDITORIAL_GUIDE[req.mediaBrand];
+  const pubStyle = BRAND_IMAGE_STYLE[req.mediaBrand];
   const canvasGuide = RATIO_CANVAS[req.ratio] ?? `CANVAS: Aspect ratio ${req.ratio}.`;
 
   const slideLabel =
@@ -355,18 +376,20 @@ export function buildImagePrompt(
       ? `SERIES CONSISTENCY (slide ${sectionIndex + 1} of ${req.slideCount}): All slides in this series must share the IDENTICAL background color, header strip height, font treatment, and color-to-category assignments. Do NOT vary the base composition structure between slides — only the data values and chart content change.`
       : "";
 
+  const sourceAttr = safeBrand ? `DATA SOURCE: Include a small attribution label "${safeBrand}" in a clean corner callout or footer zone.` : "";
+
   return `TASK: Generate a professional news-data infographic image.
 ${canvasGuide}
 SLIDE: ${slideLabel}
 ${dataLine}
 
-BRAND PARTNER: Feature "${safeBrand}" as a prominent callout box or labeled data source — visible immediately, not as small footnote text.
-
 ${themeGuide}
 
 ${layoutGuide}
 
-${brandGuide}
+${pubStyle}
+
+${sourceAttr}
 
 ${consistencyNote}
 

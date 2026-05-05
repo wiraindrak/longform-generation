@@ -26,8 +26,9 @@ type GenerationStatus =
       percent: number;
       story: GeneratedStory | null;
       images: GeneratedImage[];
+      slideErrors: Record<number, string>;
     }
-  | { phase: "done"; story: GeneratedStory; images: GeneratedImage[] }
+  | { phase: "done"; story: GeneratedStory; images: GeneratedImage[]; slideErrors: Record<number, string> }
   | { phase: "error"; message: string };
 
 // ─── Color Theme SVG Previews ─────────────────────────────────────────────────
@@ -912,7 +913,7 @@ export default function Home() {
     if (!isReady) return;
 
     setArchiveSave("idle");
-    setStatus({ phase: "generating", step: "start", message: "Starting generation…", percent: 2, story: null, images: [] });
+    setStatus({ phase: "generating", step: "start", message: "Starting generation…", percent: 2, story: null, images: [], slideErrors: {} });
     setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
 
     const req: GenerationRequest = {
@@ -939,6 +940,7 @@ export default function Home() {
       let buffer = "";
       let currentStory: GeneratedStory | null = null;
       const currentImages: GeneratedImage[] = [];
+      const currentSlideErrors: Record<number, string> = {};
 
       while (true) {
         const { done, value } = await reader.read();
@@ -970,6 +972,7 @@ export default function Home() {
               percent: event.type === "progress" ? event.percent : 0,
               story: prev.phase === "generating" ? prev.story : null,
               images: prev.phase === "generating" ? prev.images : [],
+              slideErrors: prev.phase === "generating" ? prev.slideErrors : {},
             }));
           }
 
@@ -990,8 +993,17 @@ export default function Home() {
             }));
           }
 
+          if (event.type === "slide_error") {
+            currentSlideErrors[event.index] = event.message;
+            const errorsCopy = { ...currentSlideErrors };
+            setStatus((prev) => ({
+              ...(prev as Extract<GenerationStatus, { phase: "generating" }>),
+              slideErrors: errorsCopy,
+            }));
+          }
+
           if (event.type === "done" && currentStory) {
-            setStatus({ phase: "done", story: currentStory, images: currentImages });
+            setStatus({ phase: "done", story: currentStory, images: currentImages, slideErrors: currentSlideErrors });
 
             setArchiveSave("saving");
             (async () => {
@@ -1053,9 +1065,13 @@ export default function Home() {
     setLightboxIndex(null);
   };
 
+  const activeSlideErrors: Record<number, string> =
+    status.phase === "done" ? status.slideErrors :
+    status.phase === "generating" ? status.slideErrors : {};
+
   const pendingImageSlots =
     status.phase === "generating"
-      ? Math.max(0, slideCount - status.images.length)
+      ? Math.max(0, slideCount - status.images.length - Object.keys(activeSlideErrors).length)
       : 0;
 
   const activeStory =
@@ -1368,7 +1384,9 @@ export default function Home() {
                   </p>
                   {status.phase === "done" && (
                     <p className="text-xs text-gray-400">
-                      {activeImages.length} {activeImages.length === 1 ? "slide" : "slides"} ready · click to expand
+                      {activeImages.length} {activeImages.length === 1 ? "slide" : "slides"} ready
+                      {Object.keys(activeSlideErrors).length > 0 && ` · ${Object.keys(activeSlideErrors).length} failed`}
+                      {activeImages.length > 0 && " · click to expand"}
                     </p>
                   )}
                 </div>
@@ -1384,6 +1402,12 @@ export default function Home() {
                       image={img}
                       onExpand={() => setLightboxIndex(img.index)}
                     />
+                  ))}
+                  {Object.entries(activeSlideErrors).map(([idx, msg]) => (
+                    <div key={`err-${idx}`} className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-red-600">Slide {Number(idx) + 1} failed</p>
+                      <p className="text-[11px] text-red-500 leading-snug">{msg}</p>
+                    </div>
                   ))}
                   {Array.from({ length: pendingImageSlots }).map((_, i) => (
                     <ImageSkeleton key={`sk-${i}`} />
