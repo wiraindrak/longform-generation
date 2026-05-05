@@ -62,15 +62,8 @@ export async function generateImageWithGPT(
       headers: getHeaders(),
       signal: abort.signal,
       body: JSON.stringify({
-        model: "openai/gpt-5.4-image-2",
+        model: "google/gemini-2.5-flash-image",
         messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-        image_config: {
-          // API only accepts standard ratios; map portrait variants to nearest
-          aspect_ratio: ({"4:5": "1:1", "3:4": "1:1"} as Record<string, string>)[ratio] ?? ratio,
-          image_size: "1K",
-          quality: "high",
-        },
       }),
     });
   } catch (e) {

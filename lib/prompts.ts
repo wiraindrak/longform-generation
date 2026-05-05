@@ -193,6 +193,7 @@ REQUIREMENTS:
 - The brand partner "${req.brandTarget}" must appear naturally within the data story
 - Each imagePrompt must be 200-300 words describing a specific infographic visual
 - Image prompts must describe EXACT infographic elements: chart types, data values, icon placements, color zones, layout structure
+- CRITICAL: imagePrompt must NEVER depict accident scenes, injuries, crashes, disasters, violence, or any photorealistic event — describe only abstract data visualization, charts, icons, and graphic design elements
 - Reference the ${themeMap[req.colorTheme]} color theme palette in visual descriptions
 - Optimize visual descriptions for ${req.ratio} aspect ratio infographic composition
 - Image prompts should reference "${req.brandTarget}" brand elements naturally (product, brand context, data attribution)
