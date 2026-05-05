@@ -67,7 +67,7 @@ export async function generateImageWithGPT(
         modalities: ["image", "text"],
         image_config: {
           aspect_ratio: ratio,
-          image_size: size,
+          image_size: "1K",
           quality: "high",
         },
       }),
