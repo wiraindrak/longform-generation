@@ -913,6 +913,7 @@ export default function Home() {
 
     setArchiveSave("idle");
     setStatus({ phase: "generating", step: "start", message: "Starting generation…", percent: 2, story: null, images: [] });
+    setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
 
     const req: GenerationRequest = {
       topic: topic.trim(),
@@ -1066,8 +1067,8 @@ export default function Home() {
     status.phase === "generating" ? status.images : [];
 
   const estTime =
-    slideCount === 1 ? "~30–60s" :
-    slideCount === 3 ? "~90–180s" : "~4–6 min";
+    slideCount === 1 ? "~2–4 min" :
+    slideCount === 3 ? "~6–12 min" : "~10–20 min";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1145,7 +1146,7 @@ export default function Home() {
             {/* Layout Type */}
             <FieldCard>
               <SectionLabel>04 — Infographic Layout</SectionLabel>
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {(Object.keys(LAYOUT_INFO) as InfographicLayout[]).map((l) => (
                   <LayoutCard key={l} layout={l} selected={layout === l} onClick={() => !isGenerating && setLayout(l)} />
                 ))}
@@ -1170,7 +1171,7 @@ export default function Home() {
             {/* Ratio */}
             <FieldCard>
               <SectionLabel>06 — Aspect Ratio</SectionLabel>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {(Object.keys(RATIO_INFO) as ImageRatio[]).map((r) => (
                   <RatioCard key={r} ratio={r} selected={ratio === r} onClick={() => !isGenerating && setRatio(r)} />
                 ))}
@@ -1198,7 +1199,7 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-[10px] text-gray-400 mt-2">
-                {slideCount === 5 ? "5 slides takes ~4–6 min" : slideCount === 3 ? "3 slides takes ~90–180s" : "Single slide ~30–60s"}
+                {slideCount === 5 ? "5 slides takes ~10–20 min" : slideCount === 3 ? "3 slides takes ~6–12 min" : "Single slide ~2–4 min"}
               </p>
             </FieldCard>
 
@@ -1273,7 +1274,7 @@ export default function Home() {
 
         {/* ── Progress & Results ─────────────────────────────────────────────── */}
         {(status.phase === "generating" || status.phase === "done" || status.phase === "error") && (
-          <div className="mt-10 border-t border-gray-200 pt-10">
+          <div id="results" className="mt-10 border-t border-gray-200 pt-10">
 
             {/* Archive save status */}
             {archiveSave !== "idle" && (
