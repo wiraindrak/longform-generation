@@ -213,6 +213,21 @@ Respond with ONLY this JSON (no extra text, no markdown):
 }`;
 }
 
+function sanitizeImagePrompt(text: string): string {
+  return text
+    // English — accident / injury vocabulary
+    .replace(/\b(crash(?:es)?|collision(?:s)?|accident(?:s)?|wreck(?:s)?|derail(?:ment|ed|ing)?)\b/gi, "incident")
+    .replace(/\b(victim(?:s)?|fatali(?:ty|ties)|casualt(?:y|ies)|injur(?:y|ies|ed|ing)|wound(?:s|ed)?|death(?:s)?|dead|kill(?:ed|ing)?|deceas(?:ed)?)\b/gi, "affected data point")
+    .replace(/\b(disaster(?:s)?|tragedy|tragedies|catastrophe(?:s)?|carnage)\b/gi, "event")
+    .replace(/\b(blaze|fire|explosion|blast)\b/gi, "incident")
+    // Indonesian — accident / injury vocabulary
+    .replace(/\bkecelakaan\b/gi, "insiden")
+    .replace(/\btabrakan\b/gi, "peristiwa")
+    .replace(/\b(korban|tewas|meninggal(?:al)?|luka(?:-luka)?|cedera|wafat)\b/gi, "data terdampak")
+    .replace(/\b(bencana|tragedi|malapetaka)\b/gi, "peristiwa")
+    .replace(/\b(menghantam|menabrak|menghancurkan)\b/gi, "berinteraksi dengan");
+}
+
 export function buildImagePrompt(
   imagePromptFromStory: string,
   req: GenerationRequest,
@@ -226,6 +241,8 @@ export function buildImagePrompt(
       ? "single infographic"
       : `slide ${sectionIndex + 1} of ${req.slideCount}`;
 
+  const safePrompt = sanitizeImagePrompt(imagePromptFromStory);
+
   return `TASK: Generate a professional infographic image.
 
 ${themeGuide}
@@ -235,7 +252,7 @@ ${layoutGuide}
 ${brandGuide}
 
 CONTENT DIRECTION (${slideLabel}):
-${imagePromptFromStory}
+${safePrompt}
 
 TECHNICAL REQUIREMENTS:
 - This is an INFOGRAPHIC — structured data visualization, NOT a photograph or illustration
