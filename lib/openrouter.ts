@@ -55,27 +55,27 @@ export async function generateImageWithGPT(
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), 240_000); // 4-minute hard limit
 
-  // Map RATIO_INFO apiSize values to dall-e-3 valid sizes
-  const sizeMap: Record<string, string> = {
-    "1024x1024": "1024x1024",
-    "1024x1792": "1024x1792",
-    "1792x1024": "1792x1024",
+  // Map apiSize → FLUX aspect_ratio and width/height
+  const sizeConfig: Record<string, { aspect_ratio: string; width: number; height: number }> = {
+    "1024x1024": { aspect_ratio: "1:1",  width: 1024, height: 1024 },
+    "1024x1792": { aspect_ratio: "9:16", width: 1024, height: 1792 },
+    "1792x1024": { aspect_ratio: "16:9", width: 1792, height: 1024 },
   };
-  const dalleSize = sizeMap[size] ?? "1024x1024";
+  const cfg = sizeConfig[size] ?? sizeConfig["1024x1024"];
 
   let res: Response;
   try {
-    res = await fetch(`${OPENROUTER_BASE}/images/generations`, {
+    res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
       method: "POST",
       headers: getHeaders(),
       signal: abort.signal,
       body: JSON.stringify({
-        model: "openai/dall-e-3",
-        prompt,
-        n: 1,
-        size: dalleSize,
-        response_format: "b64_json",
-        quality: "hd",
+        model: "black-forest-labs/flux-1.1-pro",
+        messages: [{ role: "user", content: prompt }],
+        // FLUX image-size params passed at top level (OpenRouter forwards them)
+        width: cfg.width,
+        height: cfg.height,
+        aspect_ratio: cfg.aspect_ratio,
       }),
     });
   } catch (e) {
@@ -89,7 +89,7 @@ export async function generateImageWithGPT(
 
   if (!res.ok) {
     const errText = await res.text();
-    const preview = errText.startsWith("<!") ? "(HTML page returned — wrong endpoint or model not accessible)" : errText.slice(0, 400);
+    const preview = errText.startsWith("<!") ? "(HTML error page — endpoint or model not accessible)" : errText.slice(0, 400);
     throw new Error(`Image generation failed (${res.status}): ${preview}`);
   }
 
@@ -100,16 +100,34 @@ export async function generateImageWithGPT(
   }
   const data = JSON.parse(raw);
 
-  const b64 = data.data?.[0]?.b64_json;
-  if (b64) return b64;
-
-  // Some providers return a URL instead of b64
-  const url: string | undefined = data.data?.[0]?.url;
-  if (url) {
-    const imgRes = await fetch(url);
-    const buf = await imgRes.arrayBuffer();
-    return Buffer.from(buf).toString("base64");
+  const message = data.choices?.[0]?.message;
+  if (!message) {
+    throw new Error(`No message in image response. Top-level keys: ${Object.keys(data).join(", ")}`);
   }
 
-  throw new Error(`Image response contained no image data. Keys: ${Object.keys(data).join(", ")}`);
+  // FLUX via OpenRouter returns image as an image_url block in content array
+  if (Array.isArray(message.content)) {
+    const block = message.content.find((c: { type: string }) => c.type === "image_url");
+    if (block?.image_url?.url) {
+      return await urlOrDataToBase64(block.image_url.url);
+    }
+  }
+
+  // Some models return content as a string (URL or data URL)
+  if (typeof message.content === "string") {
+    const c = message.content.trim();
+    if (c.startsWith("data:")) return c.split(",")[1] ?? c;
+    if (c.startsWith("http")) return await urlOrDataToBase64(c);
+  }
+
+  throw new Error(`Image response contained no image data. Message keys: ${Object.keys(message).join(", ")}`);
+}
+
+async function urlOrDataToBase64(urlOrData: string): Promise<string> {
+  if (urlOrData.startsWith("data:")) {
+    return urlOrData.split(",")[1] ?? urlOrData;
+  }
+  const res = await fetch(urlOrData);
+  const buf = await res.arrayBuffer();
+  return Buffer.from(buf).toString("base64");
 }
