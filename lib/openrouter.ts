@@ -70,7 +70,7 @@ export async function generateImageWithGPT(
       headers: getHeaders(),
       signal: abort.signal,
       body: JSON.stringify({
-        model: "black-forest-labs/flux-1.1-pro",
+        model: "black-forest-labs/flux-pro-1.1",
         messages: [{ role: "user", content: prompt }],
         // FLUX image-size params passed at top level (OpenRouter forwards them)
         width: cfg.width,
