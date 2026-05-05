@@ -50,26 +50,32 @@ export async function generateStoryWithKimi(
 export async function generateImageWithGPT(
   prompt: string,
   size: string,
-  ratio: string
+  _ratio: string
 ): Promise<string> {
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), 240_000); // 4-minute hard limit
 
+  // Map RATIO_INFO apiSize values to dall-e-3 valid sizes
+  const sizeMap: Record<string, string> = {
+    "1024x1024": "1024x1024",
+    "1024x1792": "1024x1792",
+    "1792x1024": "1792x1024",
+  };
+  const dalleSize = sizeMap[size] ?? "1024x1024";
+
   let res: Response;
   try {
-    res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    res = await fetch(`${OPENROUTER_BASE}/images/generations`, {
       method: "POST",
       headers: getHeaders(),
       signal: abort.signal,
       body: JSON.stringify({
-        model: "openai/gpt-5.4-image-2",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-        image_config: {
-          aspect_ratio: ratio,
-          image_size: "2K",
-          quality: "high",
-        },
+        model: "openai/dall-e-3",
+        prompt,
+        n: 1,
+        size: dalleSize,
+        response_format: "b64_json",
+        quality: "hd",
       }),
     });
   } catch (e) {
@@ -83,7 +89,7 @@ export async function generateImageWithGPT(
 
   if (!res.ok) {
     const errText = await res.text();
-    const preview = errText.startsWith("<!") ? "(HTML page returned — wrong endpoint or model not accessible)" : errText.slice(0, 300);
+    const preview = errText.startsWith("<!") ? "(HTML page returned — wrong endpoint or model not accessible)" : errText.slice(0, 400);
     throw new Error(`Image generation failed (${res.status}): ${preview}`);
   }
 
@@ -94,25 +100,16 @@ export async function generateImageWithGPT(
   }
   const data = JSON.parse(raw);
 
-  const message = data.choices?.[0]?.message;
-  if (!message) throw new Error("No message in image generation response");
+  const b64 = data.data?.[0]?.b64_json;
+  if (b64) return b64;
 
-  // OpenRouter returns images in message.images as data URLs
-  if (message.images?.[0]?.image_url?.url) {
-    const dataUrl: string = message.images[0].image_url.url;
-    return dataUrl.split(",")[1] ?? dataUrl;
+  // Some providers return a URL instead of b64
+  const url: string | undefined = data.data?.[0]?.url;
+  if (url) {
+    const imgRes = await fetch(url);
+    const buf = await imgRes.arrayBuffer();
+    return Buffer.from(buf).toString("base64");
   }
 
-  // Fallback: images may appear as image_url content blocks
-  if (Array.isArray(message.content)) {
-    const block = message.content.find(
-      (c: { type: string }) => c.type === "image_url"
-    );
-    if (block?.image_url?.url) {
-      const dataUrl: string = block.image_url.url;
-      return dataUrl.split(",")[1] ?? dataUrl;
-    }
-  }
-
-  throw new Error("Image response contained no image data");
+  throw new Error(`Image response contained no image data. Keys: ${Object.keys(data).join(", ")}`);
 }
