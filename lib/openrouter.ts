@@ -66,7 +66,8 @@ export async function generateImageWithGPT(
         messages: [{ role: "user", content: prompt }],
         modalities: ["image", "text"],
         image_config: {
-          aspect_ratio: ratio,
+          // API only accepts standard ratios; map portrait variants to nearest
+          aspect_ratio: ({"4:5": "1:1", "3:4": "1:1"} as Record<string, string>)[ratio] ?? ratio,
           image_size: "1K",
           quality: "high",
         },
@@ -93,6 +94,11 @@ export async function generateImageWithGPT(
     throw new Error(`Image generation returned non-JSON (${contentType}): ${raw.slice(0, 200)}`);
   }
   const data = JSON.parse(raw);
+
+  // Some providers return HTTP 200 with an error body
+  if (data.error) {
+    throw new Error(`Image generation API error: ${JSON.stringify(data.error).slice(0, 400)}`);
+  }
 
   // ── Try every known response shape ───────────────────────────────────────
 
