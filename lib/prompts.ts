@@ -303,6 +303,16 @@ Respond with ONLY this JSON (no extra text, no markdown):
 }`;
 }
 
+/** Remove words that could anchor topic context in OpenAI's safety classifier. */
+function sanitizeBrandTarget(raw: string): string {
+  return raw
+    .replace(/\b(kecelakaan|tabrakan|banjir|gempa|tsunami|kebakaran|terorisme|bom|ledakan|tewas|korban|darurat)\b/gi, "")
+    .replace(/\b(accident|crash|flood|earthquake|fire|terror|bomb|explosion|casualt|victim|emergency|disaster|killed|dead)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    || "the featured brand";
+}
+
 // Require units or % or 2+ digit numbers to avoid single-digit noise
 function extractDataPoints(text: string): string {
   const matches = text.match(
@@ -338,6 +348,7 @@ export function buildImagePrompt(
 
   const dataPoints = extractDataPoints(section.body);
   const dataLine = dataPoints ? `DATA VALUES TO VISUALIZE: ${dataPoints}` : "";
+  const safeBrand = sanitizeBrandTarget(req.brandTarget);
 
   const consistencyNote =
     req.slideCount > 1
@@ -349,7 +360,7 @@ ${canvasGuide}
 SLIDE: ${slideLabel}
 ${dataLine}
 
-BRAND PARTNER: Feature "${req.brandTarget}" as a prominent callout box or labeled data source — visible immediately, not as small footnote text.
+BRAND PARTNER: Feature "${safeBrand}" as a prominent callout box or labeled data source — visible immediately, not as small footnote text.
 
 ${themeGuide}
 

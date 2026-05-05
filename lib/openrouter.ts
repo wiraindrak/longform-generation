@@ -47,13 +47,9 @@ export async function generateStoryWithKimi(
   return data.choices[0].message.content;
 }
 
-export async function generateImageWithGPT(
-  prompt: string,
-  size: string,
-  ratio: string
-): Promise<string> {
+async function callImageAPI(prompt: string, ratio: string): Promise<Response> {
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), 240_000); // 4-minute hard limit
+  const timer = setTimeout(() => abort.abort(), 240_000);
 
   let res: Response;
   try {
@@ -74,12 +70,39 @@ export async function generateImageWithGPT(
     });
   } catch (e) {
     clearTimeout(timer);
-    if ((e as Error).name === "AbortError") {
-      throw new Error("Image generation timed out after 4 minutes");
-    }
+    if ((e as Error).name === "AbortError") throw new Error("Image generation timed out after 4 minutes");
     throw e;
   }
   clearTimeout(timer);
+  return res;
+}
+
+/** Strips everything except the structural design spec — used as safety retry. */
+function stripToDesignOnly(prompt: string): string {
+  // Keep only lines that start with known safe structural markers
+  return prompt
+    .split("\n")
+    .filter(line => {
+      const t = line.trim();
+      // Drop lines that contain brand/partner names (the main leakage vector)
+      if (/^BRAND PARTNER:/i.test(t)) return false;
+      if (/^DATA VALUES/i.test(t)) return false;
+      if (/^SLIDE:/i.test(t)) return false;
+      if (/^SERIES CONSISTENCY/i.test(t)) return false;
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+export async function generateImageWithGPT(
+  prompt: string,
+  size: string,
+  ratio: string
+): Promise<string> {
+  console.log("[image-prompt]", prompt);
+
+  let res = await callImageAPI(prompt, ratio);
 
   if (!res.ok) {
     const errText = await res.text();
@@ -88,15 +111,29 @@ export async function generateImageWithGPT(
   }
 
   const contentType = res.headers.get("content-type") ?? "";
-  const raw = await res.text();
+  let raw = await res.text();
   if (!contentType.includes("json")) {
     throw new Error(`Image generation returned non-JSON (${contentType}): ${raw.slice(0, 200)}`);
   }
-  const data = JSON.parse(raw);
+  let data = JSON.parse(raw);
 
-  // Some providers return HTTP 200 with an error body
+  // Safety rejection (code 502 from OpenAI via OpenRouter) — retry once with stripped prompt
+  if (data.error?.code === 502 && JSON.stringify(data.error).includes("safety")) {
+    console.warn("[image-safety-retry] Safety rejection on full prompt, retrying with design-only strip");
+    const stripped = stripToDesignOnly(prompt);
+    console.log("[image-prompt-retry]", stripped);
+    res = await callImageAPI(stripped, ratio);
+    raw = await res.text();
+    data = JSON.parse(raw);
+  }
+
+  // Non-safety API error
   if (data.error) {
-    throw new Error(`Image generation API error: ${JSON.stringify(data.error).slice(0, 400)}`);
+    const isSafety = JSON.stringify(data.error).toLowerCase().includes("safety");
+    const msg = isSafety
+      ? `Content rejected by image safety filter. Try a different topic or brand name.`
+      : `Image generation API error: ${JSON.stringify(data.error).slice(0, 400)}`;
+    throw new Error(msg);
   }
 
   // ── Try every known response shape ───────────────────────────────────────

@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
         if (!colorTheme) throw new Error("Color theme is required");
         if (!layout) throw new Error("Layout is required");
 
+        console.log("[generate-request]", JSON.stringify({ topic, mediaBrand, brandTarget, ratio, slideCount, colorTheme, layout }));
+
         const sectionCount = slideCount;
         const totalSteps = 1 + sectionCount;
         let stepsDone = 0;
@@ -135,7 +137,9 @@ export async function POST(req: NextRequest) {
         send({ type: "progress", step: "finalizing", message: "Done!", percent: 100 });
         send({ type: "done" });
       } catch (err) {
-        send({ type: "error", message: (err as Error).message ?? "An unexpected error occurred" });
+        const msg = (err as Error).message ?? "An unexpected error occurred";
+        console.error("[generate-error]", msg);
+        send({ type: "error", message: msg });
       } finally {
         controller.close();
       }
