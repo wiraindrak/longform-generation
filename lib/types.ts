@@ -65,6 +65,7 @@ export interface GenerationRequest {
   slideCount: SlideCount;
   colorTheme: InfographicTheme;
   layout: InfographicLayout;
+  customData?: string;
 }
 
 export interface StorySection {

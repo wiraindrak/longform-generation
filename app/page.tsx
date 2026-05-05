@@ -904,6 +904,7 @@ export default function Home() {
   const [topic, setTopic] = useState("");
   const [mediaBrand, setMediaBrand] = useState<MediaBrand>("detikcom");
   const [brandTarget, setBrandTarget] = useState("");
+  const [customData, setCustomData] = useState("");
   const [ratio, setRatio] = useState<ImageRatio>("9:16");
   const [slideCount, setSlideCount] = useState<SlideCount>(1);
   const [colorTheme, setColorTheme] = useState<InfographicTheme>("broadsheet");
@@ -931,6 +932,7 @@ export default function Home() {
       slideCount,
       colorTheme,
       layout,
+      ...(customData.trim() ? { customData: customData.trim() } : {}),
     };
 
     try {
@@ -1044,6 +1046,7 @@ export default function Home() {
                     slideCount,
                     colorTheme,
                     layout,
+                    ...(customData.trim() ? { customData: customData.trim() } : {}),
                     story: currentStory,
                     images: currentImages,
                     thumbnail,
@@ -1164,6 +1167,22 @@ export default function Home() {
               <p className="text-[10px] text-gray-400 mt-2">
                 The brand woven naturally into the data story and visuals
               </p>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Custom data &amp; sources <span className="font-normal normal-case text-gray-400">(optional)</span>
+                </p>
+                <textarea
+                  value={customData}
+                  onChange={(e) => setCustomData(e.target.value)}
+                  disabled={isGenerating}
+                  rows={3}
+                  placeholder={"e.g.\n• Samsung Indonesia market share 34% — IDC Q1 2025\n• 4.2M Galaxy units sold in 2024 — Samsung internal"}
+                  className="w-full bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 outline-none resize-none border border-gray-200 focus:border-gray-400 transition-colors"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Paste verified stats with their sources. The AI will cite these exactly instead of estimating.
+                </p>
+              </div>
             </FieldCard>
 
             {/* Layout Type */}

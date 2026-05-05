@@ -6,6 +6,7 @@ import type {
   StorySection,
   SeriesVisualDNA,
 } from "./types";
+import { SAFE_ZONE_INSTRUCTION } from "./composite";
 
 // ─── Theme visual guide (image prompt fragments) ──────────────────────────────
 
@@ -283,6 +284,14 @@ The brand partner appears as a natural actor in the data story, not as a sponsor
 VISUAL DIRECTION REQUIREMENT:
 Describe heroImage as a photographer briefing a cinematographer. Specific location, lighting condition, subject in frame, emotional register. 50-80 words minimum.
 
+DATA & SOURCE INTEGRITY RULES (CRITICAL — legal requirement):
+- NEVER fabricate source organization names. Only cite real Indonesian institutions: BPS (Badan Pusat Statistik), Bank Indonesia, OJK (Otoritas Jasa Keuangan), BPOM, Kemendagri, Kemenkes, Katadata, Nielsen Indonesia, APJII, YLKI, INDEF, CORE Indonesia, SimilarWeb, App Annie, Google Trends Indonesia.
+- If the data is illustrative or estimated, mark it explicitly: "ilustrasi" or "estimasi redaksi" — do not dress estimates as official statistics.
+- If the user has provided custom data sources, prioritize those exact figures and citations. Do not substitute or blend with invented alternatives.
+- All statistics must be plausibly dated to 2024–2026. Do not use years before 2022 unless citing a landmark historical study.
+- For brand-partner-specific claims (e.g., Samsung market share, BCA transaction volumes), mark as: "Sumber: [brand name], dikonfirmasi" only if the user explicitly provided that figure. Otherwise use: "[estimasi berdasarkan data publik]".
+- sourceAttribution field MUST follow format: "Sumber: [Real Institution Name], [Year]" — never invent an institution.
+
 CRITICAL: Respond ONLY with valid JSON matching the exact schema. No markdown, no extra text, no commentary.`;
 }
 
@@ -323,6 +332,9 @@ export function buildStoryUserPrompt(req: GenerationRequest): string {
   };
 
   const brandGuide = BRAND_EDITORIAL_GUIDE[req.mediaBrand];
+  const customDataBlock = req.customData?.trim()
+    ? `\nCUSTOM DATA & SOURCES (prioritize these — verified by client):\n${req.customData.trim()}`
+    : "";
 
   return `Art direct an editorial infographic series for direct brand-partner sale.
 
@@ -334,7 +346,7 @@ DESIGN SYSTEM: ${themeMap[req.colorTheme]}
 NUMBER OF SLIDES: ${sectionCount}
 ASPECT RATIO: ${req.ratio}
 
-${brandGuide}
+${brandGuide}${customDataBlock}
 
 CREATIVE BRIEF:
 1. Find the data angle that would surprise an educated Indonesian professional — not the obvious take
@@ -493,12 +505,15 @@ ${sourceAttr}
 - Follow canvas ratio and layout structure exactly — ratio adaptation rules are non-negotiable
 - Populate charts and callouts with internally consistent, realistic-looking numbers
 - Full-bleed composition, no white border frame, no watermark
+- ${SAFE_ZONE_INSTRUCTION}
 
 [DO NOT]
 - Do not produce generic "DATA OVERVIEW" or "KEY METRICS" template aesthetics
 - Do not use clip-art icons or stock icon library shapes
 - Do not stamp a brand logo — brand appears only as a data attribution text label
 - Do not render inconsistent or garbled text — leave typography zones as clean layout space if uncertain
+- If human figures appear: anatomically correct hands and fingers — no extra limbs, no fused fingers, no extra hands
+- Crowd scenes: render foreground subjects in detail; soft-focus or silhouette background figures rather than attempting detailed anatomy on many individuals
 
 Generate a single premium editorial infographic that executes all of the above.`;
 }

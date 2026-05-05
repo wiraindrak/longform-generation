@@ -5,6 +5,7 @@ import {
   buildImagePrompt,
 } from "@/lib/prompts";
 import { generateStoryWithKimi, generateImageWithGPT } from "@/lib/openrouter";
+import { compositeLogos, apiSizeToDimensions } from "@/lib/composite";
 import type {
   GenerationRequest,
   GeneratedStory,
@@ -14,7 +15,9 @@ import type {
 } from "@/lib/types";
 import { RATIO_INFO } from "@/lib/types";
 
-export const maxDuration = 300;
+// 800s = ~13 min. Covers 5 slides × 2-4 min each with margin.
+// (Previous 300s limit caused slide 3 termination on 3-slide requests.)
+export const maxDuration = 800;
 
 function makeSlug(text: string): string {
   return text
@@ -24,18 +27,44 @@ function makeSlug(text: string): string {
     .slice(0, 50);
 }
 
+function ts(): string {
+  return new Date().toISOString();
+}
+
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
+  const requestStart = Date.now();
 
   const stream = new ReadableStream({
     async start(controller) {
+      let streamClosed = false;
+
       const send = (event: ProgressEvent) => {
+        if (streamClosed) return;
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          console.log(`[sse] ${ts()} type=${event.type}${event.type === "progress" ? ` step=${event.step} pct=${event.percent}` : ""}${event.type === "image_done" ? ` idx=${event.image.index}` : ""}${event.type === "slide_error" ? ` idx=${event.index}` : ""}`);
         } catch {
-          // stream may be closed
+          streamClosed = true;
+          console.warn(`[sse] ${ts()} stream closed — further events suppressed`);
         }
       };
+
+      // Keepalive fires every 10s to prevent proxy idle-timeout.
+      const keepAlive = setInterval(() => {
+        if (streamClosed) {
+          clearInterval(keepAlive);
+          return;
+        }
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+          console.log(`[keepalive] ${ts()} elapsed=${Math.round((Date.now() - requestStart) / 1000)}s`);
+        } catch {
+          streamClosed = true;
+          console.warn(`[keepalive] ${ts()} stream closed by keepalive write — aborting`);
+          clearInterval(keepAlive);
+        }
+      }, 10_000);
 
       try {
         const body: GenerationRequest = await req.json();
@@ -48,7 +77,7 @@ export async function POST(req: NextRequest) {
         if (!colorTheme) throw new Error("Color theme is required");
         if (!layout) throw new Error("Layout is required");
 
-        console.log("[generate-request]", JSON.stringify({ topic, mediaBrand, brandTarget, ratio, slideCount, colorTheme, layout }));
+        console.log(`[request] ${ts()} topic="${topic}" brand="${brandTarget}" mediaBrand=${mediaBrand} slides=${slideCount} ratio=${ratio} theme=${colorTheme} layout=${layout}`);
 
         const sectionCount = slideCount;
         const totalSteps = 1 + sectionCount;
@@ -57,17 +86,17 @@ export async function POST(req: NextRequest) {
         // ── Step 1: Generate story ──────────────────────────────────────────
         send({ type: "progress", step: "story", message: "Researching topic and crafting infographic content…", percent: 5 });
 
+        const storyStart = Date.now();
         let storyRaw: string;
         try {
           storyRaw = await generateStoryWithKimi(buildStorySystemPrompt(), buildStoryUserPrompt(body));
         } catch (e) {
           throw new Error(`Story generation failed: ${(e as Error).message}`);
         }
+        console.log(`[story] ${ts()} completed in ${Math.round((Date.now() - storyStart) / 1000)}s rawLen=${storyRaw.length}`);
 
         let story: GeneratedStory;
         try {
-          // Strip markdown code fences and extract the outermost {} object —
-          // guards against models that wrap JSON in ```json...``` or add preamble text
           const jsonText = (() => {
             const fenced = storyRaw.match(/```(?:json)?\s*([\s\S]*?)```/);
             if (fenced) return fenced[1].trim();
@@ -102,65 +131,83 @@ export async function POST(req: NextRequest) {
 
         // ── Step 2+N: Generate images ───────────────────────────────────────
         const apiSize = RATIO_INFO[ratio as ImageRatio]?.apiSize ?? "1024x1024";
+        const { w: imgW, h: imgH } = apiSizeToDimensions(apiSize);
         const topicSlug = makeSlug(topic);
-
-        // Keep SSE connection alive during long image generation waits.
-        // Railway/nginx will close idle connections; comment events prevent that.
-        const keepAlive = setInterval(() => {
-          try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
-        }, 10_000);
 
         let anyImageSucceeded = false;
         try {
-        for (let i = 0; i < sectionCount; i++) {
-          const section = story.sections[i];
-          const pctPerImage = (95 - progressAfterStory) / sectionCount;
-          const currentPct = Math.round(progressAfterStory + i * pctPerImage);
+          for (let i = 0; i < sectionCount; i++) {
+            // Abort if client disconnected (stream closed by proxy or maxDuration)
+            if (streamClosed) {
+              console.warn(`[generate] ${ts()} stream closed before slide ${i + 1} — aborting loop`);
+              break;
+            }
 
-          send({
-            type: "progress",
-            step: `image_${i}`,
-            message: sectionCount === 1 ? "Generating infographic…" : `Generating slide ${i + 1} of ${sectionCount}…`,
-            percent: currentPct,
-          });
+            const section = story.sections[i];
+            const pctPerImage = (95 - progressAfterStory) / sectionCount;
+            const currentPct = Math.round(progressAfterStory + i * pctPerImage);
 
-          let base64: string;
-          try {
-            base64 = await generateImageWithGPT(buildImagePrompt(section, body, i, story.visualDNA), apiSize, ratio);
-          } catch (e) {
-            const slideMsg = (e as Error).message;
-            console.error(`[slide-error] slide ${i + 1}:`, slideMsg);
-            send({ type: "slide_error", index: i, message: slideMsg });
+            const mem = process.memoryUsage();
+            console.log(`[slide-start] ${ts()} slide=${i + 1}/${sectionCount} pct=${currentPct} elapsed=${Math.round((Date.now() - requestStart) / 1000)}s rss=${Math.round(mem.rss / 1024 / 1024)}MB heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+
+            send({
+              type: "progress",
+              step: `image_${i}`,
+              message: sectionCount === 1 ? "Generating infographic…" : `Generating slide ${i + 1} of ${sectionCount}…`,
+              percent: currentPct,
+            });
+
+            const slideStart = Date.now();
+            let base64: string;
+            try {
+              base64 = await generateImageWithGPT(buildImagePrompt(section, body, i, story.visualDNA), apiSize, ratio);
+              console.log(`[slide-done] ${ts()} slide=${i + 1} elapsed=${Math.round((Date.now() - slideStart) / 1000)}s base64len=${base64.length}`);
+            } catch (e) {
+              const slideMsg = (e as Error).message;
+              console.error(`[slide-error] ${ts()} slide=${i + 1} elapsed=${Math.round((Date.now() - slideStart) / 1000)}s err="${slideMsg}"`);
+              send({ type: "slide_error", index: i, message: slideMsg });
+              stepsDone++;
+              continue;
+            }
+
+            // Post-composite media brand + partner logos
+            const compositeStart = Date.now();
+            try {
+              base64 = await compositeLogos(base64, mediaBrand, brandTarget, imgW, imgH);
+              console.log(`[composite] ${ts()} slide=${i + 1} elapsed=${Math.round((Date.now() - compositeStart) / 1000)}s`);
+            } catch (e) {
+              console.warn(`[composite] ${ts()} slide=${i + 1} failed — using unmodified image:`, (e as Error).message);
+            }
+
+            const generatedImage: GeneratedImage = {
+              index: i,
+              sectionHeadline: section.headline,
+              base64,
+              filename: `${topicSlug}-${mediaBrand}-${layout}-slide-${i + 1}.png`,
+            };
+
+            send({ type: "image_done", image: generatedImage });
+            anyImageSucceeded = true;
             stepsDone++;
-            continue;
           }
-
-          const generatedImage: GeneratedImage = {
-            index: i,
-            sectionHeadline: section.headline,
-            base64,
-            filename: `${topicSlug}-${mediaBrand}-${layout}-slide-${i + 1}.png`,
-          };
-
-          send({ type: "image_done", image: generatedImage });
-          anyImageSucceeded = true;
-          stepsDone++;
-        }
         } finally {
           clearInterval(keepAlive);
         }
 
-        if (!anyImageSucceeded && sectionCount > 0) {
+        if (!anyImageSucceeded && sectionCount > 0 && !streamClosed) {
           throw new Error("All slides failed to generate. Check your topic or brand name and try again.");
         }
 
         send({ type: "progress", step: "finalizing", message: "Done!", percent: 100 });
         send({ type: "done" });
+
+        console.log(`[request-done] ${ts()} total=${Math.round((Date.now() - requestStart) / 1000)}s succeeded=${anyImageSucceeded}`);
       } catch (err) {
         const msg = (err as Error).message ?? "An unexpected error occurred";
-        console.error("[generate-error]", msg);
+        console.error(`[generate-error] ${ts()} elapsed=${Math.round((Date.now() - requestStart) / 1000)}s err="${msg}"`);
         send({ type: "error", message: msg });
       } finally {
+        clearInterval(keepAlive);
         controller.close();
       }
     },
