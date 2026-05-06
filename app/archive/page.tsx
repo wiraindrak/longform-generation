@@ -102,10 +102,6 @@ function ArchiveCard({ entry }: { entry: ArchiveEntry }) {
             <p className="text-xs text-gray-400">No preview</p>
           </div>
         )}
-        {/* Image count badge */}
-        <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
-          {entry.image_count} {entry.image_count === 1 ? "image" : "images"}
-        </div>
       </div>
 
       {/* Content */}
@@ -135,6 +131,9 @@ function ArchiveCard({ entry }: { entry: ArchiveEntry }) {
 
         {/* Meta badges */}
         <div className="flex flex-wrap gap-1 mt-auto pt-2">
+          <span className="text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded-full font-medium">
+            {entry.image_count} {entry.image_count === 1 ? "slide" : "slides"}
+          </span>
           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
             {layoutLabel}
           </span>
@@ -223,6 +222,7 @@ export default function ArchivePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrandFilter>("all");
+  const [search, setSearch] = useState("");
 
   const fetchArchive = useCallback(async () => {
     setLoading(true);
@@ -243,13 +243,23 @@ export default function ArchivePage() {
     fetchArchive();
   }, [fetchArchive]);
 
-  // Client-side brand filter
-  const filtered =
+  // Client-side brand + search filter
+  const brandFiltered =
     activeTab === "all"
       ? allEntries
       : allEntries.filter((e) => e.media_brand === activeTab);
 
-  // Count per brand for tab badges
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? brandFiltered.filter(
+        (e) =>
+          (e.main_headline ?? "").toLowerCase().includes(q) ||
+          e.topic.toLowerCase().includes(q) ||
+          e.brand_target.toLowerCase().includes(q)
+      )
+    : brandFiltered;
+
+  // Count per brand for tab badges (before search filter)
   const counts = {
     all: allEntries.length,
     detikcom: allEntries.filter((e) => e.media_brand === "detikcom").length,
@@ -260,11 +270,38 @@ export default function ArchivePage() {
   return (
     <main className="max-w-7xl mx-auto px-4 py-8 pb-20">
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 mb-1">Archive</h1>
-        <p className="text-gray-500">
-          All generated content — browse by media brand.
-        </p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 mb-1">Archive</h1>
+          <p className="text-gray-400 text-sm">All generated content.</p>
+        </div>
+        {/* Search */}
+        <div className="relative w-64 shrink-0">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            width="14" height="14" viewBox="0 0 14 14" fill="none"
+          >
+            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search topic, headline, brand…"
+            className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-400 transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Brand tabs */}
@@ -320,6 +357,13 @@ export default function ArchivePage() {
           </svg>
         </button>
       </div>
+
+      {/* Search result count */}
+      {q && !loading && (
+        <p className="text-xs text-gray-400 mb-4">
+          {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{search}&rdquo;
+        </p>
+      )}
 
       {/* Error */}
       {error && (

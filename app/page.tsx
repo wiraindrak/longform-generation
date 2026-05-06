@@ -929,6 +929,7 @@ export default function Home() {
   const [archiveSave, setArchiveSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showCustomData, setShowCustomData] = useState(false);
 
   const isGenerating = status.phase === "generating";
   const isReady = topic.trim().length > 5 && brandTarget.trim().length > 1 && !isGenerating;
@@ -1103,7 +1104,6 @@ export default function Home() {
         setShowLogoDropzone(false);
       } else {
         setPartnerLogoStatus({ state: "not-found" });
-        setShowLogoDropzone(true);
       }
     }, 400);
     return () => clearTimeout(timer);
@@ -1204,21 +1204,12 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 py-10 pb-20">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1 mb-4 shadow-sm">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <rect x="0.5" y="0.5" width="4.5" height="4.5" rx="1" fill="#3B82F6" />
-              <rect x="7" y="0.5" width="4.5" height="4.5" rx="1" fill="#6366F1" />
-              <rect x="0.5" y="7" width="4.5" height="4.5" rx="1" fill="#06B6D4" />
-              <rect x="7" y="7" width="4.5" height="4.5" rx="1" fill="#3B82F6" opacity="0.5" />
-            </svg>
-            <span className="text-[11px] font-semibold text-gray-500 tracking-wide uppercase">Infographic Generator</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900 mb-3">
-            Visual Data Storytelling
+        <div className="mb-6">
+          <h1 className="text-2xl font-black tracking-tight text-gray-900">
+            Infographic Generator
           </h1>
-          <p className="text-gray-500 text-lg max-w-xl mx-auto">
-            Turn any topic into a publication-ready infographic — styled for Indonesian media brands.
+          <p className="text-gray-400 text-sm mt-1">
+            Topic → story → publication-ready visuals in one shot.
           </p>
         </div>
 
@@ -1243,6 +1234,41 @@ export default function Home() {
                 <p className={clsx("text-[10px]", topic.length > 300 ? "text-amber-500" : "text-gray-400")}>
                   {topic.length} chars
                 </p>
+              </div>
+
+              {/* Collapsible custom data */}
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomData((v) => !v)}
+                  className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-gray-600 transition-colors w-full"
+                >
+                  <svg
+                    width="10" height="10" viewBox="0 0 10 10" fill="none"
+                    className={clsx("transition-transform shrink-0", showCustomData ? "rotate-90" : "")}
+                  >
+                    <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {showCustomData ? "Hide data sources" : "+ Add data sources"}
+                  {customData.trim() && !showCustomData && (
+                    <span className="ml-1 bg-blue-100 text-blue-600 rounded px-1 py-0.5 font-medium">added</span>
+                  )}
+                </button>
+                {showCustomData && (
+                  <div className="mt-2">
+                    <textarea
+                      value={customData}
+                      onChange={(e) => setCustomData(e.target.value)}
+                      disabled={isGenerating}
+                      rows={3}
+                      placeholder={"e.g.\n• Samsung Indonesia market share 34% — IDC Q1 2025\n• 4.2M Galaxy units sold in 2024 — Samsung internal"}
+                      className="w-full bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 outline-none resize-none border border-gray-200 focus:border-gray-400 transition-colors"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Paste verified stats with their sources. The AI will cite these exactly instead of estimating.
+                    </p>
+                  </div>
+                )}
               </div>
             </FieldCard>
 
@@ -1351,23 +1377,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Custom data */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Custom data &amp; sources <span className="font-normal normal-case text-gray-400">(optional)</span>
-                </p>
-                <textarea
-                  value={customData}
-                  onChange={(e) => setCustomData(e.target.value)}
-                  disabled={isGenerating}
-                  rows={3}
-                  placeholder={"e.g.\n• Samsung Indonesia market share 34% — IDC Q1 2025\n• 4.2M Galaxy units sold in 2024 — Samsung internal"}
-                  className="w-full bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 outline-none resize-none border border-gray-200 focus:border-gray-400 transition-colors"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">
-                  Paste verified stats with their sources. The AI will cite these exactly instead of estimating.
-                </p>
-              </div>
             </FieldCard>
 
             {/* Layout Type */}
@@ -1393,7 +1402,7 @@ export default function Home() {
           </div>
 
           {/* ── Sidebar ───────────────────────────────────────────────────── */}
-          <div className="space-y-4 lg:sticky lg:top-[73px]">
+          <div className="space-y-4 lg:sticky lg:top-6 self-start">
 
             {/* Ratio */}
             <FieldCard>
@@ -1456,40 +1465,57 @@ export default function Home() {
             </FieldCard>
 
             {/* Summary */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-xs text-gray-400 space-y-1.5 shadow-sm">
-              <div className="flex justify-between">
-                <span>Story model</span>
-                <span className="text-gray-700 font-medium">Kimi K2.5</span>
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              {/* Top: prominent settings */}
+              <div className="p-4 space-y-3">
+                {topic.trim() && (
+                  <p className="text-[11px] text-gray-700 font-medium leading-snug line-clamp-2">
+                    {topic.length > 80 ? topic.slice(0, 77) + "…" : topic}
+                  </p>
+                )}
+                <div className="flex gap-2 text-[11px]">
+                  <span className="flex-1 bg-gray-50 rounded-lg px-2.5 py-1.5 text-gray-600 font-medium truncate">
+                    {MEDIA_BRAND_LABELS[mediaBrand]}
+                  </span>
+                  {brandTarget.trim() && (
+                    <span className="flex-1 bg-gray-50 rounded-lg px-2.5 py-1.5 text-gray-600 font-medium truncate">
+                      {brandTarget}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-900 rounded-lg px-2 py-2">
+                    <p className="text-lg font-black text-white leading-none">{slideCount}</p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">slide{slideCount > 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg px-2 py-2">
+                    <p className="text-sm font-bold text-gray-900 leading-none">{qCfg.label}</p>
+                    <p className="text-[9px] text-gray-500 mt-0.5">quality</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg px-2 py-2">
+                    <p className="text-sm font-bold text-gray-900 leading-none">${estCost}</p>
+                    <p className="text-[9px] text-gray-500 mt-0.5">est. cost</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-gray-400">Est. time</span>
+                  <span className="text-gray-700 font-medium">{estTime}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Image model</span>
-                <span className="text-gray-700 font-medium">GPT 5.4 Image</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Layout</span>
-                <span className="text-gray-700 font-medium">{LAYOUT_INFO[layout].label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Theme</span>
-                <span className="text-gray-700 font-medium">{THEME_INFO[colorTheme].displayName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Quality</span>
-                <span className="text-gray-700 font-medium">{qCfg.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Output</span>
-                <span className="text-gray-700 font-medium">
-                  {slideCount} × {ratio}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Est. time</span>
-                <span className="text-gray-700 font-medium">{estTime}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Est. cost</span>
-                <span className="text-gray-700 font-medium">${estCost} ({slideCount} slide{slideCount > 1 ? "s" : ""})</span>
+              {/* Bottom: dimmed config */}
+              <div className="border-t border-gray-100 px-4 py-3 space-y-1.5 text-[10px] text-gray-400">
+                <div className="flex justify-between">
+                  <span>Layout</span>
+                  <span className="text-gray-500">{LAYOUT_INFO[layout].label}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Theme</span>
+                  <span className="text-gray-500">{THEME_INFO[colorTheme].displayName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Dimensions</span>
+                  <span className="text-gray-500">{ratio} · {RATIO_INFO[ratio].apiSize}</span>
+                </div>
               </div>
             </div>
 
@@ -1600,22 +1626,53 @@ export default function Home() {
                   )}
                 </div>
 
-                {activeStory.sections.map((section, i) => (
-                  <div key={i} className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-                    {slideCount > 1 && (
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">
-                        Slide {i + 1}
+                {activeStory.sections.map((section, i) => {
+                  const bodyLines = section.body.split("\n").filter(Boolean);
+                  return (
+                    <div key={i} className="mb-8 pb-8 border-b border-gray-100 last:border-0 last:pb-0">
+                      {slideCount > 1 && (
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">
+                          Slide {i + 1}
+                        </p>
+                      )}
+                      <h3 className="text-xl font-black text-gray-900 mb-1 leading-tight">{section.headline}</h3>
+                      <p className="text-gray-500 text-sm italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
+                        {section.subheadline}
                       </p>
-                    )}
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{section.headline}</h3>
-                    <p className="text-gray-500 text-sm italic mb-3">{section.subheadline}</p>
-                    <div className="text-gray-600 text-sm leading-relaxed space-y-1">
-                      {section.body.split("\n").map((line, j) => (
-                        <p key={j}>{line}</p>
-                      ))}
+
+                      {/* Pull quote if available */}
+                      {section.editorialMeta?.pullQuote && (
+                        <blockquote className="my-4 border-l-4 border-gray-900 pl-4">
+                          <p className="text-base font-semibold text-gray-800 italic leading-snug">
+                            &ldquo;{section.editorialMeta.pullQuote}&rdquo;
+                          </p>
+                        </blockquote>
+                      )}
+
+                      <div className="text-gray-600 text-sm leading-relaxed space-y-2">
+                        {bodyLines.map((line, j) => {
+                          if (j === 0 && line.length > 0) {
+                            return (
+                              <p key={j}>
+                                <span className="float-left text-4xl font-black leading-[0.85] mr-1.5 mt-1 text-gray-900 select-none">
+                                  {line[0]}
+                                </span>
+                                {line.slice(1)}
+                              </p>
+                            );
+                          }
+                          return <p key={j}>{line}</p>;
+                        })}
+                      </div>
+
+                      {section.editorialMeta?.sourceAttribution && (
+                        <p className="mt-3 text-[10px] text-gray-400 font-medium uppercase tracking-wide">
+                          Source: {section.editorialMeta.sourceAttribution}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
