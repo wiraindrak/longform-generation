@@ -137,7 +137,7 @@ async function resolveLogoBuffer(opts: {
 
   // 2. File from logo library — tries: primary-light, primary-dark, icon-light, icon-dark (SVG before PNG each)
   if (opts.brandId) {
-    const candidates = ["primary-light", "primary-dark", "icon-light", "icon-dark"];
+    const candidates = ["primary-light", "primary-dark", "primary", "icon-light", "icon-dark", "icon"];
     for (const name of candidates) {
       for (const ext of ["svg", "png"]) {
         const p = path.join(process.cwd(), "public", "logos", opts.brandType, opts.brandId, `${name}.${ext}`);

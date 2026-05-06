@@ -7,6 +7,5 @@
   "tagline": "#1 Indonesian Digital News",
   "lastUpdated": "2026-05-06",
   "filesPresent": true,
-  "availableFiles": ["primary-dark.png", "icon-dark.png"],
-  "notes": "primary-dark = full horizontal logo (red text on transparent). icon-dark = symbol/brandmark only."
+  "availableFiles": ["primary.png", "icon.png"]
 }

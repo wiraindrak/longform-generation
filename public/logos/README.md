@@ -26,17 +26,24 @@ The compositing engine tries files in this order until it finds one that exists:
 
 1. `primary-light.svg` → `primary-light.png`
 2. `primary-dark.svg`  → `primary-dark.png`
-3. `icon-light.svg`    → `icon-light.png`
-4. `icon-dark.svg`     → `icon-dark.png`
-5. SVG text lozenge fallback (always works, no files needed)
+3. `primary.svg`       → `primary.png`          ← simplest — no variant suffix needed
+4. `icon-light.svg`    → `icon-light.png`
+5. `icon-dark.svg`     → `icon-dark.png`
+6. `icon.svg`          → `icon.png`
+7. SVG text lozenge fallback (always works, no files needed)
 
-**If you only have one PNG file** — just name it `primary-dark.png` for a colored logo (red, blue, green etc. on transparent background), or `primary-light.png` for a white/reversed logo on transparent background.
+**Simplest case — one PNG, no variants:**
+```
+primary.png   ← full horizontal logo
+icon.png      ← symbol/brandmark only (optional)
+```
+Drop them in the brand folder. No renaming required.
 
-**If you have a logo + icon** — drop both in:
-- `primary-dark.png` = full horizontal logo (text + mark)
-- `icon-dark.png` = symbol/brandmark only
-
-The composite will use `primary-dark` first. `icon-dark` is the fallback if no primary is found.
+**If you have light + dark variants** (white version for dark backgrounds):
+```
+primary-dark.png    ← colored logo (red, blue, etc.) — for light backgrounds
+primary-light.png   ← white/reversed logo — for dark backgrounds
+```
 
 ## How to add a new logo
 
