@@ -6,7 +6,7 @@ import type {
   StorySection,
   SeriesVisualDNA,
 } from "./types";
-import { SAFE_ZONE_INSTRUCTION } from "./composite";
+import { getSafeZoneInstruction } from "./composite";
 
 // ─── Theme visual guide (image prompt fragments) ──────────────────────────────
 
@@ -505,7 +505,7 @@ ${sourceAttr}
 - Follow canvas ratio and layout structure exactly — ratio adaptation rules are non-negotiable
 - Populate charts and callouts with internally consistent, realistic-looking numbers
 - Full-bleed composition, no white border frame, no watermark
-- ${SAFE_ZONE_INSTRUCTION}
+- ${getSafeZoneInstruction(req.layout)}
 
 [DO NOT]
 - Do not produce generic "DATA OVERVIEW" or "KEY METRICS" template aesthetics

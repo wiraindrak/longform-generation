@@ -1,0 +1,10 @@
+{
+  "displayName": "detikcom",
+  "aliases": ["detik", "detik.com", "detikcom", "detik com"],
+  "minWidthPx": 80,
+  "preferredVariant": "light",
+  "clearspaceRatio": 0.15,
+  "tagline": "#1 Indonesian Digital News",
+  "lastUpdated": "2026-05-06",
+  "filesPresent": false
+}

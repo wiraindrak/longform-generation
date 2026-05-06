@@ -1,118 +1,167 @@
 /**
- * Post-compositing: overlays media brand and partner brand lozenges on
+ * Post-compositing: overlays media brand and partner brand logos on
  * the AI-generated base image.
  *
- * Media brand lozenges are generated from SVG in-code (no external files).
- * Partner logos are read from public/logos/partners/<slug>.png if present;
- * otherwise a styled text lozenge is generated.
+ * Priority order for each logo slot:
+ *   1. Uploaded logo (logoId from session cache)
+ *   2. File on disk from logo library  (public/logos/{type}/{brandId}/primary-{variant}.{svg|png})
+ *   3. SVG lozenge generated in-code (text-based fallback)
  *
- * Falls back to unmodified image if sharp fails (e.g., SVG support not
- * compiled into the deployed binary).
+ * Logo placement: media brand top-right, partner bottom-right (defaults).
+ * Falls back to unmodified image if sharp fails.
  */
 
 import path from "path";
 import fs from "fs";
+import { findLogo } from "./logos";
+import { getCachedLogo } from "./logo-upload";
+import type { MediaBrand, InfographicLayout } from "./types";
 
-// ─── Logo placement zones (fractions of image dimensions) ────────────────────
+// ─── Zone definitions ─────────────────────────────────────────────────────────
 
-export interface LogoZone {
-  xFrac: number;
-  yFrac: number;
-  wFrac: number;
-  hFrac: number;
+interface LogoZone {
   anchor: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  offsetX: number;    // px from anchor edge
+  offsetY: number;
+  maxW: number;       // max logo width px
+  maxH: number;       // max logo height px
+  padding: number;    // background pill padding px
 }
 
-export const MEDIA_LOGO_ZONE: LogoZone = {
-  xFrac: 0.02,
-  yFrac: 0.015,
-  wFrac: 0.22,
-  hFrac: 0.065,
-  anchor: "top-left",
-};
+const MEDIA_ZONE: LogoZone  = { anchor: "top-right",    offsetX: 20, offsetY: 20, maxW: 140, maxH: 52, padding: 10 };
+const PARTNER_ZONE: LogoZone = { anchor: "bottom-right", offsetX: 20, offsetY: 20, maxW: 120, maxH: 44, padding: 10 };
 
-export const PARTNER_LOGO_ZONE: LogoZone = {
-  xFrac: 0.02,
-  yFrac: 0.915,
-  wFrac: 0.3,
-  hFrac: 0.055,
-  anchor: "bottom-left",
-};
+// magazine-cover: media logo bottom-left as a publication mark
+const MAGAZINE_MEDIA_ZONE: LogoZone   = { anchor: "bottom-left", offsetX: 20, offsetY: 20, maxW: 100, maxH: 40, padding: 8 };
+const MAGAZINE_PARTNER_ZONE: LogoZone = { anchor: "bottom-right", offsetX: 20, offsetY: 20, maxW: 100, maxH: 40, padding: 8 };
 
-// Keep these corners clean in the image prompt so logos composite cleanly
-export const SAFE_ZONE_INSTRUCTION =
-  "Keep top-left corner and bottom-left corner clean — no important visual content in 25% × 8% areas at those positions. These are reserved for editorial brand overlays.";
+function getZones(layout: InfographicLayout | undefined): { media: LogoZone; partner: LogoZone } {
+  if (layout === "magazine-cover") return { media: MAGAZINE_MEDIA_ZONE, partner: MAGAZINE_PARTNER_ZONE };
+  return { media: MEDIA_ZONE, partner: PARTNER_ZONE };
+}
 
-// ─── SVG lozenge builders ─────────────────────────────────────────────────────
+// ─── Safe-zone instruction for image prompts ──────────────────────────────────
 
-type MediaBrand = "detikcom" | "cnn-indonesia" | "cnbc-indonesia";
+export function getSafeZoneInstruction(layout?: InfographicLayout): string {
+  if (layout === "magazine-cover") {
+    return "Keep bottom-left corner clean for media publication mark and bottom-right corner clean for brand partner attribution — no important visual content in 20% × 8% areas at those positions.";
+  }
+  return "Keep top-right corner and bottom-right corner clean — no important visual content in 20% × 8% areas at those positions. These are reserved for editorial brand overlays.";
+}
 
-function mediaLozengeSvg(brand: MediaBrand, w: number, h: number): string {
-  const pad = Math.round(h * 0.15);
+// Legacy static export (used by prompts.ts fallback)
+export const SAFE_ZONE_INSTRUCTION = getSafeZoneInstruction();
+
+// ─── Position calculation ─────────────────────────────────────────────────────
+
+function computePosition(
+  zone: LogoZone,
+  logoW: number,
+  logoH: number,
+  imgW: number,
+  imgH: number
+): { left: number; top: number } {
+  const pillW = logoW + zone.padding * 2;
+  const pillH = logoH + zone.padding * 2;
+  let left: number, top: number;
+  switch (zone.anchor) {
+    case "top-left":    left = zone.offsetX; top = zone.offsetY; break;
+    case "top-right":   left = imgW - zone.offsetX - pillW; top = zone.offsetY; break;
+    case "bottom-left": left = zone.offsetX; top = imgH - zone.offsetY - pillH; break;
+    case "bottom-right": left = imgW - zone.offsetX - pillW; top = imgH - zone.offsetY - pillH; break;
+  }
+  return { left: Math.max(0, left), top: Math.max(0, top) };
+}
+
+// ─── SVG lozenge builders (text fallback) ─────────────────────────────────────
+
+type MediaBrandId = "detikcom" | "cnn-indonesia" | "cnbc-indonesia";
+
+function mediaLozengeSvg(brand: MediaBrandId, w: number, h: number): string {
   const r = Math.round(h * 0.18);
   const fs = Math.round(h * 0.48);
   const cy = Math.round(h * 0.64);
-
-  const configs: Record<MediaBrand, { bg: string; fg: string; label: string; subLabel?: string; subFg?: string }> = {
-    detikcom: {
-      bg: "#E00000",
-      fg: "#FFFFFF",
-      label: "detikcom",
-    },
-    "cnn-indonesia": {
-      bg: "#CC0000",
-      fg: "#FFFFFF",
-      label: "CNN",
-      subLabel: "Indonesia",
-      subFg: "#FFFFFF",
-    },
-    "cnbc-indonesia": {
-      bg: "#003087",
-      fg: "#FFFFFF",
-      label: "CNBC",
-      subLabel: "Indonesia",
-      subFg: "#FFB800",
-    },
+  const pad = Math.round(h * 0.15);
+  const configs: Record<MediaBrandId, { bg: string; fg: string; label: string; sub?: string; subFg?: string }> = {
+    detikcom:         { bg: "#E00000", fg: "#FFFFFF", label: "detikcom" },
+    "cnn-indonesia":  { bg: "#CC0000", fg: "#FFFFFF", label: "CNN", sub: "Indonesia", subFg: "#FFFFFF" },
+    "cnbc-indonesia": { bg: "#003087", fg: "#FFFFFF", label: "CNBC", sub: "Indonesia", subFg: "#FFB800" },
   };
-
   const c = configs[brand];
-  const subLabelX = c.label.length <= 3 ? Math.round(w * 0.42) : Math.round(w * 0.52);
-  const subLabelSize = Math.round(fs * 0.58);
-
+  const subX = c.label.length <= 3 ? Math.round(w * 0.42) : Math.round(w * 0.52);
+  const subSize = Math.round(fs * 0.58);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <rect x="0" y="0" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="${c.bg}" opacity="0.92"/>
-  <text x="${pad}" y="${cy}"
-    font-family="Arial Black,Helvetica Neue,sans-serif"
-    font-size="${fs}" font-weight="900"
-    fill="${c.fg}" letter-spacing="-0.5">${c.label}</text>
-  ${c.subLabel ? `<text x="${subLabelX}" y="${cy}"
-    font-family="Arial,Helvetica Neue,sans-serif"
-    font-size="${subLabelSize}" font-weight="700"
-    fill="${c.subFg ?? c.fg}">${c.subLabel}</text>` : ""}
+  <text x="${pad}" y="${cy}" font-family="Arial Black,Helvetica Neue,sans-serif" font-size="${fs}" font-weight="900" fill="${c.fg}" letter-spacing="-0.5">${c.label}</text>
+  ${c.sub ? `<text x="${subX}" y="${cy}" font-family="Arial,Helvetica Neue,sans-serif" font-size="${subSize}" font-weight="700" fill="${c.subFg ?? c.fg}">${c.sub}</text>` : ""}
 </svg>`;
 }
 
 function partnerLozengeSvg(name: string, w: number, h: number): string {
   const r = Math.round(h * 0.18);
-  const labelSize = Math.round(h * 0.3);
-  const nameSize = Math.round(h * 0.42);
-  const labelY = Math.round(h * 0.42);
-  const nameY = Math.round(h * 0.82);
+  const labelSize = Math.round(h * 0.28);
+  const nameSize = Math.round(h * 0.40);
+  const labelY = Math.round(h * 0.40);
+  const nameY = Math.round(h * 0.80);
   const pad = Math.round(w * 0.05);
-  // Truncate long names
-  const display = name.length > 20 ? name.slice(0, 19) + "…" : name;
-
+  const display = name.length > 22 ? name.slice(0, 21) + "…" : name;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <rect x="0" y="0" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#1a1a1a" opacity="0.72"/>
-  <text x="${pad}" y="${labelY}"
-    font-family="Arial,Helvetica Neue,sans-serif"
-    font-size="${labelSize}" font-weight="400"
-    fill="#aaaaaa" letter-spacing="1">IN PARTNERSHIP WITH</text>
-  <text x="${pad}" y="${nameY}"
-    font-family="Arial Black,Helvetica Neue,sans-serif"
-    font-size="${nameSize}" font-weight="900"
-    fill="#FFFFFF">${display}</text>
+  <rect x="0" y="0" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#1a1a1a" opacity="0.75"/>
+  <text x="${pad}" y="${labelY}" font-family="Arial,Helvetica Neue,sans-serif" font-size="${labelSize}" font-weight="400" fill="#aaaaaa" letter-spacing="1">IN PARTNERSHIP WITH</text>
+  <text x="${pad}" y="${nameY}" font-family="Arial Black,Helvetica Neue,sans-serif" font-size="${nameSize}" font-weight="900" fill="#FFFFFF">${display}</text>
 </svg>`;
+}
+
+// ─── Logo buffer resolution ────────────────────────────────────────────────────
+
+async function resolveLogoBuffer(opts: {
+  logoId?: string;
+  brandId?: string | null;
+  brandType: "media" | "partner";
+  zone: LogoZone;
+  fallbackSvg: () => string;
+}): Promise<Buffer | null> {
+  const sharp = (await import("sharp")).default;
+  const targetW = opts.zone.maxW;
+  const targetH = opts.zone.maxH;
+  const fit = "contain" as const;
+  const bg = { r: 0, g: 0, b: 0, alpha: 0 };
+
+  // 1. Uploaded logo from session cache
+  if (opts.logoId) {
+    const cached = getCachedLogo(opts.logoId);
+    if (cached) {
+      return sharp(cached.buffer).resize(targetW, targetH, { fit, background: bg }).png().toBuffer();
+    }
+  }
+
+  // 2. File from logo library (SVG preferred, then PNG)
+  if (opts.brandId) {
+    for (const variant of ["light", "dark"] as const) {
+      for (const ext of ["svg", "png"]) {
+        const p = path.join(process.cwd(), "public", "logos", opts.brandType, opts.brandId, `primary-${variant}.${ext}`);
+        if (fs.existsSync(p)) {
+          return sharp(p).resize(targetW, targetH, { fit, background: bg }).png().toBuffer();
+        }
+      }
+    }
+  }
+
+  // 3. SVG lozenge text fallback
+  const pillW = targetW + opts.zone.padding * 2;
+  const pillH = targetH + opts.zone.padding * 2;
+  return sharp(Buffer.from(opts.fallbackSvg())).resize(pillW, pillH).png().toBuffer();
+}
+
+// ─── Background pill for real logo files ─────────────────────────────────────
+
+async function pillBuffer(w: number, h: number): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  const r = Math.round(h * 0.2);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <rect x="0" y="0" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#000000" opacity="0.55"/>
+</svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 // ─── Public compositing function ──────────────────────────────────────────────
@@ -122,65 +171,94 @@ export async function compositeLogos(
   mediaBrand: string,
   brandPartner: string,
   imageWidth: number,
-  imageHeight: number
+  imageHeight: number,
+  layout?: InfographicLayout,
+  partnerLogoId?: string
 ): Promise<string> {
   try {
     const sharp = (await import("sharp")).default;
-
     const imgBuf = Buffer.from(base64Image, "base64");
-
-    const mZone = MEDIA_LOGO_ZONE;
-    const pZone = PARTNER_LOGO_ZONE;
-
-    const mW = Math.round(imageWidth * mZone.wFrac);
-    const mH = Math.round(imageHeight * mZone.hFrac);
-    const mLeft = Math.round(imageWidth * mZone.xFrac);
-    const mTop = Math.round(imageHeight * mZone.yFrac);
-
-    const pW = Math.round(imageWidth * pZone.wFrac);
-    const pH = Math.round(imageHeight * pZone.hFrac);
-    const pLeft = Math.round(imageWidth * pZone.xFrac);
-    const pTop = Math.round(imageHeight * pZone.yFrac);
+    const { media: mZone, partner: pZone } = getZones(layout);
 
     const composites: import("sharp").OverlayOptions[] = [];
 
-    // ── Media brand lozenge ───────────────────────────────────────────────────
-    const brandKey = mediaBrand as MediaBrand;
-    const validBrands: MediaBrand[] = ["detikcom", "cnn-indonesia", "cnbc-indonesia"];
+    // ── Media brand ────────────────────────────────────────────────────────────
+    const mediaBrandId = findLogo(mediaBrand, "media");
+    const validMediaIds: MediaBrandId[] = ["detikcom", "cnn-indonesia", "cnbc-indonesia"];
+    const mediaId = validMediaIds.includes(mediaBrand as MediaBrandId)
+      ? (mediaBrand as MediaBrandId)
+      : (mediaBrandId.found ? mediaBrandId.brandId as MediaBrandId : null);
 
-    // Check for a static logo file first (public/logos/media/<brand>.png)
-    const staticMediaPath = path.join(process.cwd(), "public", "logos", "media", `${mediaBrand}.png`);
-    if (validBrands.includes(brandKey) || fs.existsSync(staticMediaPath)) {
-      let mediaBuf: Buffer;
-      if (fs.existsSync(staticMediaPath)) {
-        mediaBuf = await sharp(staticMediaPath).resize(mW, mH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+    if (mediaId) {
+      const hasFile = (() => {
+        for (const v of ["light", "dark"]) {
+          for (const ext of ["svg", "png"]) {
+            if (fs.existsSync(path.join(process.cwd(), "public", "logos", "media", mediaId, `primary-${v}.${ext}`))) return true;
+          }
+        }
+        return false;
+      })();
+
+      let mediaLogoBuf: Buffer;
+      if (hasFile) {
+        const logoBuf = await resolveLogoBuffer({
+          brandId: mediaId, brandType: "media", zone: mZone,
+          fallbackSvg: () => mediaLozengeSvg(mediaId, mZone.maxW + mZone.padding * 2, mZone.maxH + mZone.padding * 2),
+        });
+        const pill = await pillBuffer(mZone.maxW + mZone.padding * 2, mZone.maxH + mZone.padding * 2);
+        mediaLogoBuf = await sharp(pill).composite([{ input: logoBuf!, gravity: "center" }]).png().toBuffer();
       } else {
-        const svgStr = mediaLozengeSvg(brandKey, mW, mH);
-        mediaBuf = await sharp(Buffer.from(svgStr)).resize(mW, mH).png().toBuffer();
+        mediaLogoBuf = await resolveLogoBuffer({
+          brandId: null, brandType: "media", zone: mZone,
+          fallbackSvg: () => mediaLozengeSvg(mediaId, mZone.maxW + mZone.padding * 2, mZone.maxH + mZone.padding * 2),
+        }) as Buffer;
       }
-      composites.push({ input: mediaBuf, left: mLeft, top: mTop });
+
+      const pillW = mZone.maxW + mZone.padding * 2;
+      const pillH = mZone.maxH + mZone.padding * 2;
+      const { left, top } = computePosition(mZone, mZone.maxW, mZone.maxH, imageWidth, imageHeight);
+      composites.push({ input: mediaLogoBuf, left, top, blend: "over" });
+      console.log(`[composite] media=${mediaId} pillSize=${pillW}×${pillH} pos=(${left},${top})`);
     }
 
-    // ── Partner brand lozenge ─────────────────────────────────────────────────
+    // ── Partner brand ──────────────────────────────────────────────────────────
     if (brandPartner && brandPartner !== "the featured brand") {
-      const partnerSlug = brandPartner.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const staticPartnerPath = path.join(process.cwd(), "public", "logos", "partners", `${partnerSlug}.png`);
+      const partnerMatch = findLogo(brandPartner, "partner");
+      const hasFile = partnerMatch.found && (() => {
+        for (const v of ["light", "dark"]) {
+          for (const ext of ["svg", "png"]) {
+            if (fs.existsSync(path.join(process.cwd(), "public", "logos", "partners", partnerMatch.brandId!, `primary-${v}.${ext}`))) return true;
+          }
+        }
+        return false;
+      })();
 
-      let partnerBuf: Buffer;
-      if (fs.existsSync(staticPartnerPath)) {
-        partnerBuf = await sharp(staticPartnerPath)
-          .resize(pW, pH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .png()
-          .toBuffer();
+      const hasCachedUpload = !!partnerLogoId && !!getCachedLogo(partnerLogoId);
+
+      let partnerLogoBuf: Buffer;
+      if (hasCachedUpload || hasFile) {
+        const logoBuf = await resolveLogoBuffer({
+          logoId: partnerLogoId,
+          brandId: partnerMatch.found ? partnerMatch.brandId : null,
+          brandType: "partner",
+          zone: pZone,
+          fallbackSvg: () => partnerLozengeSvg(brandPartner, pZone.maxW + pZone.padding * 2, pZone.maxH + pZone.padding * 2),
+        });
+        const pill = await pillBuffer(pZone.maxW + pZone.padding * 2, pZone.maxH + pZone.padding * 2);
+        partnerLogoBuf = await sharp(pill).composite([{ input: logoBuf!, gravity: "center" }]).png().toBuffer();
       } else {
-        const svgStr = partnerLozengeSvg(brandPartner, pW, pH);
-        partnerBuf = await sharp(Buffer.from(svgStr)).resize(pW, pH).png().toBuffer();
+        partnerLogoBuf = await resolveLogoBuffer({
+          brandId: null, brandType: "partner", zone: pZone,
+          fallbackSvg: () => partnerLozengeSvg(brandPartner, pZone.maxW + pZone.padding * 2, pZone.maxH + pZone.padding * 2),
+        }) as Buffer;
       }
-      composites.push({ input: partnerBuf, left: pLeft, top: pTop });
+
+      const { left, top } = computePosition(pZone, pZone.maxW, pZone.maxH, imageWidth, imageHeight);
+      composites.push({ input: partnerLogoBuf, left, top, blend: "over" });
+      console.log(`[composite] partner="${brandPartner}" logoId=${partnerLogoId ?? "none"} pos=(${left},${top})`);
     }
 
     if (composites.length === 0) return base64Image;
-
     const result = await sharp(imgBuf).composite(composites).png().toBuffer();
     return result.toString("base64");
   } catch (e) {
@@ -189,7 +267,7 @@ export async function compositeLogos(
   }
 }
 
-// ─── Lookup image dimensions from apiSize string ──────────────────────────────
+// ─── Dimension helper ─────────────────────────────────────────────────────────
 
 export function apiSizeToDimensions(apiSize: string): { w: number; h: number } {
   const [ws, hs] = apiSize.split("x");

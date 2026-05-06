@@ -13,7 +13,19 @@ import type {
   GeneratedImage,
   ProgressEvent,
 } from "@/lib/types";
-import { THEME_INFO, LAYOUT_INFO, RATIO_INFO, MEDIA_BRAND_LABELS } from "@/lib/types";
+import { THEME_INFO, LAYOUT_INFO, RATIO_INFO, MEDIA_BRAND_LABELS, QUALITY_CONFIG } from "@/lib/types";
+import type { QualityPreset } from "@/lib/types";
+import { findLogo } from "@/lib/logos";
+
+// ─── Logo upload state ────────────────────────────────────────────────────────
+
+type PartnerLogoStatus =
+  | { state: "idle" }
+  | { state: "found"; brandId: string; displayName: string }
+  | { state: "not-found" }
+  | { state: "uploading" }
+  | { state: "uploaded"; logoId: string; previewBase64: string; filename: string; detectedVariant: "light" | "dark" | "ambiguous"; warnings: string[] }
+  | { state: "error"; message: string };
 
 // ─── Status type ─────────────────────────────────────────────────────────────
 
@@ -905,6 +917,10 @@ export default function Home() {
   const [mediaBrand, setMediaBrand] = useState<MediaBrand>("detikcom");
   const [brandTarget, setBrandTarget] = useState("");
   const [customData, setCustomData] = useState("");
+  const [partnerLogoStatus, setPartnerLogoStatus] = useState<PartnerLogoStatus>({ state: "idle" });
+  const [quality, setQuality] = useState<QualityPreset>("standard");
+  const [showLogoDropzone, setShowLogoDropzone] = useState(false);
+  const [logoDropDragging, setLogoDropDragging] = useState(false);
   const [ratio, setRatio] = useState<ImageRatio>("9:16");
   const [slideCount, setSlideCount] = useState<SlideCount>(1);
   const [colorTheme, setColorTheme] = useState<InfographicTheme>("broadsheet");
@@ -924,6 +940,7 @@ export default function Home() {
     setStatus({ phase: "generating", step: "start", message: "Starting generation…", percent: 2, story: null, images: [], slideErrors: {} });
     setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
 
+    const uploadedLogoId = partnerLogoStatus.state === "uploaded" ? partnerLogoStatus.logoId : undefined;
     const req: GenerationRequest = {
       topic: topic.trim(),
       mediaBrand,
@@ -932,7 +949,9 @@ export default function Home() {
       slideCount,
       colorTheme,
       layout,
+      quality,
       ...(customData.trim() ? { customData: customData.trim() } : {}),
+      ...(uploadedLogoId ? { logoId: uploadedLogoId } : {}),
     };
 
     try {
@@ -1046,6 +1065,7 @@ export default function Home() {
                     slideCount,
                     colorTheme,
                     layout,
+                    quality,
                     ...(customData.trim() ? { customData: customData.trim() } : {}),
                     story: currentStory,
                     images: currentImages,
@@ -1067,6 +1087,84 @@ export default function Home() {
       setStatus({ phase: "error", message: (err as Error).message ?? "Connection error. Please try again." });
     }
   }, [isReady, topic, mediaBrand, brandTarget, ratio, slideCount, colorTheme, layout]);
+
+  // Logo library lookup (debounced, client-side, no API call)
+  useEffect(() => {
+    if (partnerLogoStatus.state === "uploaded") return; // keep uploaded logo
+    if (!brandTarget.trim() || brandTarget.trim().length < 2) {
+      setPartnerLogoStatus({ state: "idle" });
+      setShowLogoDropzone(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const match = findLogo(brandTarget, "partner");
+      if (match.found) {
+        setPartnerLogoStatus({ state: "found", brandId: match.brandId!, displayName: match.meta!.displayName });
+        setShowLogoDropzone(false);
+      } else {
+        setPartnerLogoStatus({ state: "not-found" });
+        setShowLogoDropzone(true);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [brandTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleBrandTargetChange = (val: string) => {
+    setBrandTarget(val);
+    // Clear uploaded logo if user changes brand name after uploading
+    if (partnerLogoStatus.state === "uploaded") {
+      setPartnerLogoStatus({ state: "idle" });
+      setShowLogoDropzone(false);
+    }
+  };
+
+  const processLogoFile = async (file: File) => {
+    const MAX_MB = 5;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setPartnerLogoStatus({ state: "error", message: `File too large — max ${MAX_MB} MB` });
+      return;
+    }
+    const allowed = ["image/svg+xml", "image/png", "image/jpeg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setPartnerLogoStatus({ state: "error", message: "Must be SVG, PNG, or JPEG" });
+      return;
+    }
+    setPartnerLogoStatus({ state: "uploading" });
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload-logo", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPartnerLogoStatus({ state: "error", message: (data.errors?.[0]) ?? "Upload failed" });
+        return;
+      }
+      setPartnerLogoStatus({
+        state: "uploaded",
+        logoId: data.logoId,
+        previewBase64: data.previewBase64,
+        filename: file.name,
+        detectedVariant: data.detectedVariant,
+        warnings: data.warnings ?? [],
+      });
+      setShowLogoDropzone(false);
+    } catch {
+      setPartnerLogoStatus({ state: "error", message: "Network error during upload" });
+    }
+  };
+
+  const handleLogoFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processLogoFile(file);
+    e.target.value = "";
+  };
+
+  const handleLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setLogoDropDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processLogoFile(file);
+  };
 
   const handleReset = () => {
     setStatus({ phase: "idle" });
@@ -1092,9 +1190,14 @@ export default function Home() {
     status.phase === "done" ? status.images :
     status.phase === "generating" ? status.images : [];
 
-  const estTime =
-    slideCount === 1 ? "~2–4 min" :
-    slideCount === 3 ? "~6–12 min" : "~10–20 min";
+  const qCfg = QUALITY_CONFIG[quality];
+  const slideTimeMins: Record<QualityPreset, Record<SlideCount, string>> = {
+    draft:    { 1: "~30–45s", 3: "~1.5–2.5 min", 5: "~2.5–4 min" },
+    standard: { 1: "~1–2 min", 3: "~3–6 min", 5: "~5–10 min" },
+    premium:  { 1: "~3–5 min", 3: "~9–15 min", 5: "~15–25 min" },
+  };
+  const estTime = slideTimeMins[quality][slideCount];
+  const estCost = (qCfg.costPerSlide * slideCount).toFixed(2);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1159,7 +1262,7 @@ export default function Home() {
               <input
                 type="text"
                 value={brandTarget}
-                onChange={(e) => setBrandTarget(e.target.value)}
+                onChange={(e) => handleBrandTargetChange(e.target.value)}
                 placeholder="e.g. Samsung Galaxy, Pertamina, Bank BCA, Toyota Innova"
                 disabled={isGenerating}
                 className="w-full bg-transparent text-gray-900 text-sm placeholder:text-gray-400 outline-none"
@@ -1167,6 +1270,88 @@ export default function Home() {
               <p className="text-[10px] text-gray-400 mt-2">
                 The brand woven naturally into the data story and visuals
               </p>
+
+              {/* Logo status row */}
+              {partnerLogoStatus.state === "found" && (
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1.5">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    {partnerLogoStatus.displayName} logo in library
+                  </span>
+                  <button type="button" onClick={() => setShowLogoDropzone(true)} className="text-[10px] text-blue-500 hover:text-blue-700 underline underline-offset-2">Use different logo</button>
+                </div>
+              )}
+              {partnerLogoStatus.state === "not-found" && !showLogoDropzone && (
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-gray-500">No logo in library for &ldquo;{brandTarget}&rdquo;</span>
+                  <button type="button" onClick={() => setShowLogoDropzone(true)} className="text-[10px] text-blue-500 hover:text-blue-700 font-medium underline underline-offset-2">Upload logo →</button>
+                </div>
+              )}
+              {partnerLogoStatus.state === "uploading" && (
+                <p className="mt-2.5 text-[11px] text-gray-500 flex items-center gap-1.5">
+                  <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Uploading…
+                </p>
+              )}
+              {partnerLogoStatus.state === "error" && (
+                <p className="mt-2.5 text-[11px] text-red-500">{partnerLogoStatus.message}</p>
+              )}
+
+              {/* Uploaded preview card */}
+              {partnerLogoStatus.state === "uploaded" && (
+                <div className="mt-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 flex items-start gap-3">
+                  {/* Checkered thumbnail */}
+                  <div className="relative w-12 h-12 rounded flex-shrink-0 overflow-hidden border border-gray-200" style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='4' height='4' fill='%23ccc'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%23ccc'/%3E%3Crect x='4' width='4' height='4' fill='%23fff'/%3E%3Crect y='4' width='4' height='4' fill='%23fff'/%3E%3C/svg%3E\")"}}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={partnerLogoStatus.previewBase64} alt="logo preview" className="absolute inset-0 w-full h-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium text-emerald-700 truncate">{partnerLogoStatus.filename}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      {partnerLogoStatus.detectedVariant === "light" && "Light logo — will use on dark pill"}
+                      {partnerLogoStatus.detectedVariant === "dark" && "Dark logo — will use on light pill"}
+                      {partnerLogoStatus.detectedVariant === "ambiguous" && "Variant ambiguous — will use default pill"}
+                    </p>
+                    {partnerLogoStatus.warnings.length > 0 && (
+                      <p className="text-[10px] text-amber-600 mt-0.5">{partnerLogoStatus.warnings[0]}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setPartnerLogoStatus({ state: "idle" }); setShowLogoDropzone(false); }}
+                    className="text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5"
+                    title="Remove"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Upload dropzone */}
+              {showLogoDropzone && partnerLogoStatus.state !== "uploaded" && (
+                <div
+                  className={clsx(
+                    "mt-2.5 relative rounded-lg border-2 border-dashed transition-colors text-center py-4 px-3 cursor-pointer",
+                    logoDropDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-gray-400 bg-gray-50 hover:bg-gray-100"
+                  )}
+                  onDragOver={(e) => { e.preventDefault(); setLogoDropDragging(true); }}
+                  onDragLeave={() => setLogoDropDragging(false)}
+                  onDrop={handleLogoDrop}
+                  onClick={() => document.getElementById("logo-file-input")?.click()}
+                >
+                  <input id="logo-file-input" type="file" className="hidden" accept="image/svg+xml,image/png,image/jpeg,image/webp" onChange={handleLogoFileInput} />
+                  {logoDropDragging ? (
+                    <p className="text-[11px] font-medium text-blue-500">Drop to upload</p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] text-gray-600 font-medium">Drag &amp; drop or click to browse</p>
+                      <p className="text-[10px] text-gray-400 mt-1">SVG preferred · PNG/JPG · Min 500×500 · Max 5 MB</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Custom data */}
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   Custom data &amp; sources <span className="font-normal normal-case text-gray-400">(optional)</span>
@@ -1220,6 +1405,33 @@ export default function Home() {
               </div>
             </FieldCard>
 
+            {/* Quality preset */}
+            <FieldCard>
+              <SectionLabel>06b — Output Quality</SectionLabel>
+              <div className="grid grid-cols-3 gap-2">
+                {(["draft", "standard", "premium"] as QualityPreset[]).map((q) => {
+                  const cfg = QUALITY_CONFIG[q];
+                  return (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => !isGenerating && setQuality(q)}
+                      className={clsx(
+                        "rounded-lg border p-2.5 text-left transition-all",
+                        quality === q
+                          ? "border-gray-800 bg-gray-900 text-white shadow-sm"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                      )}
+                    >
+                      <p className={clsx("text-xs font-semibold", quality === q ? "text-white" : "text-gray-800")}>{cfg.label}</p>
+                      <p className={clsx("text-[10px] mt-0.5", quality === q ? "text-gray-300" : "text-gray-400")}>{cfg.speedNote}</p>
+                      <p className={clsx("text-[10px] mt-1 font-medium tabular-nums", quality === q ? "text-gray-200" : "text-gray-500")}>{cfg.timePerSlide}/slide</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </FieldCard>
+
             {/* Slide count */}
             <FieldCard>
               <SectionLabel>07 — Number of Slides</SectionLabel>
@@ -1240,9 +1452,7 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-400 mt-2">
-                {slideCount === 5 ? "5 slides takes ~10–20 min" : slideCount === 3 ? "3 slides takes ~6–12 min" : "Single slide ~2–4 min"}
-              </p>
+              <p className="text-[10px] text-gray-400 mt-2">{estTime} at {qCfg.label} quality</p>
             </FieldCard>
 
             {/* Summary */}
@@ -1264,14 +1474,22 @@ export default function Home() {
                 <span className="text-gray-700 font-medium">{THEME_INFO[colorTheme].displayName}</span>
               </div>
               <div className="flex justify-between">
+                <span>Quality</span>
+                <span className="text-gray-700 font-medium">{qCfg.label}</span>
+              </div>
+              <div className="flex justify-between">
                 <span>Output</span>
                 <span className="text-gray-700 font-medium">
-                  {slideCount} × {ratio} ({RATIO_INFO[ratio].apiSize})
+                  {slideCount} × {ratio}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Est. time</span>
                 <span className="text-gray-700 font-medium">{estTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Est. cost</span>
+                <span className="text-gray-700 font-medium">${estCost} ({slideCount} slide{slideCount > 1 ? "s" : ""})</span>
               </div>
             </div>
 

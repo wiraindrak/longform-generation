@@ -1,0 +1,10 @@
+{
+  "displayName": "Gojek",
+  "aliases": ["gojek", "go-jek", "gojek indonesia", "goride", "gofood", "go jek", "goto gojek"],
+  "minWidthPx": 60,
+  "preferredVariant": "light",
+  "clearspaceRatio": 0.12,
+  "tagline": "Gojek Super App",
+  "lastUpdated": "2026-05-06",
+  "filesPresent": false
+}

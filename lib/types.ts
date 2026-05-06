@@ -1,4 +1,41 @@
 export type MediaBrand = "detikcom" | "cnn-indonesia" | "cnbc-indonesia";
+export type QualityPreset = "draft" | "standard" | "premium";
+
+export interface QualityConfig {
+  apiQuality: "low" | "medium" | "high";
+  formatHint: "jpeg" | "png";
+  label: string;
+  speedNote: string;
+  timePerSlide: string;
+  costPerSlide: number;
+}
+
+export const QUALITY_CONFIG: Record<QualityPreset, QualityConfig> = {
+  draft: {
+    apiQuality: "low",
+    formatHint: "jpeg",
+    label: "Draft",
+    speedNote: "Quick preview",
+    timePerSlide: "~30–45s",
+    costPerSlide: 0.02,
+  },
+  standard: {
+    apiQuality: "medium",
+    formatHint: "png",
+    label: "Standard",
+    speedNote: "Default for review",
+    timePerSlide: "~1–2 min",
+    costPerSlide: 0.07,
+  },
+  premium: {
+    apiQuality: "high",
+    formatHint: "png",
+    label: "Premium",
+    speedNote: "Pitch & delivery quality",
+    timePerSlide: "~3–5 min",
+    costPerSlide: 0.19,
+  },
+};
 export type ImageRatio = "1:1" | "4:5" | "9:16" | "16:9" | "3:4";
 export type SlideCount = 1 | 3 | 5;
 
@@ -66,6 +103,8 @@ export interface GenerationRequest {
   colorTheme: InfographicTheme;
   layout: InfographicLayout;
   customData?: string;
+  quality?: QualityPreset;
+  logoId?: string;
 }
 
 export interface StorySection {

@@ -1,0 +1,10 @@
+{
+  "displayName": "Samsung",
+  "aliases": ["samsung", "samsung galaxy", "samsung indonesia", "samsung electronics", "samsung id"],
+  "minWidthPx": 60,
+  "preferredVariant": "light",
+  "clearspaceRatio": 0.12,
+  "tagline": "Samsung Electronics Indonesia",
+  "lastUpdated": "2026-05-06",
+  "filesPresent": false
+}

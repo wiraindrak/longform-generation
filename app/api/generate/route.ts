@@ -13,7 +13,7 @@ import type {
   ProgressEvent,
   ImageRatio,
 } from "@/lib/types";
-import { RATIO_INFO } from "@/lib/types";
+import { RATIO_INFO, QUALITY_CONFIG } from "@/lib/types";
 
 // 800s = ~13 min. Covers 5 slides × 2-4 min each with margin.
 // (Previous 300s limit caused slide 3 termination on 3-slide requests.)
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const body: GenerationRequest = await req.json();
-        const { topic, mediaBrand, brandTarget, ratio, slideCount, colorTheme, layout } = body;
+        const { topic, mediaBrand, brandTarget, ratio, slideCount, colorTheme, layout, quality, logoId } = body;
 
         if (!topic?.trim()) throw new Error("Topic is required");
         if (!mediaBrand) throw new Error("Media brand is required");
@@ -77,7 +77,10 @@ export async function POST(req: NextRequest) {
         if (!colorTheme) throw new Error("Color theme is required");
         if (!layout) throw new Error("Layout is required");
 
-        console.log(`[request] ${ts()} topic="${topic}" brand="${brandTarget}" mediaBrand=${mediaBrand} slides=${slideCount} ratio=${ratio} theme=${colorTheme} layout=${layout}`);
+        const qualityPreset = quality ?? "standard";
+        const { apiQuality } = QUALITY_CONFIG[qualityPreset as keyof typeof QUALITY_CONFIG] ?? QUALITY_CONFIG.standard;
+
+        console.log(`[request] ${ts()} topic="${topic}" brand="${brandTarget}" mediaBrand=${mediaBrand} slides=${slideCount} ratio=${ratio} theme=${colorTheme} layout=${layout} quality=${qualityPreset} logoId=${logoId ?? "none"}`);
 
         const sectionCount = slideCount;
         const totalSteps = 1 + sectionCount;
@@ -160,7 +163,7 @@ export async function POST(req: NextRequest) {
             const slideStart = Date.now();
             let base64: string;
             try {
-              base64 = await generateImageWithGPT(buildImagePrompt(section, body, i, story.visualDNA), apiSize, ratio);
+              base64 = await generateImageWithGPT(buildImagePrompt(section, body, i, story.visualDNA), apiSize, ratio, apiQuality);
               console.log(`[slide-done] ${ts()} slide=${i + 1} elapsed=${Math.round((Date.now() - slideStart) / 1000)}s base64len=${base64.length}`);
             } catch (e) {
               const slideMsg = (e as Error).message;
@@ -173,7 +176,7 @@ export async function POST(req: NextRequest) {
             // Post-composite media brand + partner logos
             const compositeStart = Date.now();
             try {
-              base64 = await compositeLogos(base64, mediaBrand, brandTarget, imgW, imgH);
+              base64 = await compositeLogos(base64, mediaBrand, brandTarget, imgW, imgH, layout, logoId);
               console.log(`[composite] ${ts()} slide=${i + 1} elapsed=${Math.round((Date.now() - compositeStart) / 1000)}s`);
             } catch (e) {
               console.warn(`[composite] ${ts()} slide=${i + 1} failed — using unmodified image:`, (e as Error).message);

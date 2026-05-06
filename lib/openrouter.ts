@@ -47,7 +47,11 @@ export async function generateStoryWithKimi(
   return data.choices[0].message.content;
 }
 
-async function callImageAPI(prompt: string, ratio: string): Promise<Response> {
+async function callImageAPI(
+  prompt: string,
+  ratio: string,
+  apiQuality: "low" | "medium" | "high" = "high"
+): Promise<Response> {
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), 240_000);
 
@@ -64,7 +68,7 @@ async function callImageAPI(prompt: string, ratio: string): Promise<Response> {
         image_config: {
           aspect_ratio: ({"4:5": "1:1", "3:4": "1:1"} as Record<string, string>)[ratio] ?? ratio,
           image_size: "1K",
-          quality: "high",
+          quality: apiQuality,
         },
       }),
     });
@@ -107,11 +111,12 @@ function stripToDesignOnly(prompt: string): string {
 export async function generateImageWithGPT(
   prompt: string,
   size: string,
-  ratio: string
+  ratio: string,
+  apiQuality: "low" | "medium" | "high" = "high"
 ): Promise<string> {
   console.log("[image-prompt]", prompt);
 
-  let res = await callImageAPI(prompt, ratio);
+  let res = await callImageAPI(prompt, ratio, apiQuality);
 
   if (!res.ok) {
     const errText = await res.text();
@@ -131,7 +136,7 @@ export async function generateImageWithGPT(
     console.warn("[image-safety-retry] Safety rejection on full prompt, retrying with design-only strip");
     const stripped = stripToDesignOnly(prompt);
     console.log("[image-prompt-retry]", stripped);
-    res = await callImageAPI(stripped, ratio);
+    res = await callImageAPI(stripped, ratio, apiQuality);
     raw = await res.text();
     data = JSON.parse(raw);
   }

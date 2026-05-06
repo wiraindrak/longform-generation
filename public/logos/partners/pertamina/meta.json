@@ -1,0 +1,10 @@
+{
+  "displayName": "Pertamina",
+  "aliases": ["pertamina", "pt pertamina", "pertamina persero", "pt pertamina persero"],
+  "minWidthPx": 60,
+  "preferredVariant": "light",
+  "clearspaceRatio": 0.12,
+  "tagline": "PT Pertamina (Persero)",
+  "lastUpdated": "2026-05-06",
+  "filesPresent": false
+}

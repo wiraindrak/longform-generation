@@ -1,0 +1,10 @@
+{
+  "displayName": "Bank BCA",
+  "aliases": ["bca", "bank bca", "bank central asia", "bca mobile", "mybca", "pt bca", "pt bank central asia"],
+  "minWidthPx": 60,
+  "preferredVariant": "light",
+  "clearspaceRatio": 0.12,
+  "tagline": "Bank Central Asia",
+  "lastUpdated": "2026-05-06",
+  "filesPresent": false
+}
