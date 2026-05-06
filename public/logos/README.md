@@ -9,18 +9,34 @@ public/logos/
   media/          # Media brand logos (detikcom, CNN Indonesia, CNBC Indonesia)
     {brand-id}/
       meta.json
-      primary-light.svg   # White/light variant — for dark backgrounds
-      primary-light.png   # Raster fallback
-      primary-dark.svg    # Dark variant — for light backgrounds
-      primary-dark.png    # Raster fallback
-  partners/       # Brand partner logos (Samsung, BCA, etc.)
-    {brand-id}/
-      meta.json
-      primary-light.svg
-      primary-light.png
+      primary-light.png   # Full logo — white/light variant (for dark pill backgrounds)
+      primary-dark.png    # Full logo — colored/dark variant (for light pill backgrounds)
+      primary-light.svg   # SVG version (preferred if available)
       primary-dark.svg
-      primary-dark.png
+      icon-light.png      # Symbol/brandmark only — light variant (optional)
+      icon-dark.png       # Symbol/brandmark only — dark variant (optional)
+  partners/       # Brand partner logos
+    {brand-id}/
+      (same structure)
 ```
+
+### File lookup priority
+
+The compositing engine tries files in this order until it finds one that exists:
+
+1. `primary-light.svg` → `primary-light.png`
+2. `primary-dark.svg`  → `primary-dark.png`
+3. `icon-light.svg`    → `icon-light.png`
+4. `icon-dark.svg`     → `icon-dark.png`
+5. SVG text lozenge fallback (always works, no files needed)
+
+**If you only have one PNG file** — just name it `primary-dark.png` for a colored logo (red, blue, green etc. on transparent background), or `primary-light.png` for a white/reversed logo on transparent background.
+
+**If you have a logo + icon** — drop both in:
+- `primary-dark.png` = full horizontal logo (text + mark)
+- `icon-dark.png` = symbol/brandmark only
+
+The composite will use `primary-dark` first. `icon-dark` is the fallback if no primary is found.
 
 ## How to add a new logo
 

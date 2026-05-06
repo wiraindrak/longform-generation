@@ -2,9 +2,11 @@
   "displayName": "detikcom",
   "aliases": ["detik", "detik.com", "detikcom", "detik com"],
   "minWidthPx": 80,
-  "preferredVariant": "light",
+  "preferredVariant": "dark",
   "clearspaceRatio": 0.15,
   "tagline": "#1 Indonesian Digital News",
   "lastUpdated": "2026-05-06",
-  "filesPresent": false
+  "filesPresent": true,
+  "availableFiles": ["primary-dark.png", "icon-dark.png"],
+  "notes": "primary-dark = full horizontal logo (red text on transparent). icon-dark = symbol/brandmark only."
 }
